@@ -1,0 +1,5 @@
+[] Look how to move ollama to D drive
+[] install a local LLM and see how it performs.
+[] Add the weekly function to the notion tools
+[] Think of a well structure for a multiagent system
+[] Make it capable of creating Notion Pages

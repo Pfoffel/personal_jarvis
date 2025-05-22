@@ -1,0 +1,240 @@
+[
+    {
+        "id": 0,
+        "uid": "759a1597-2eaa-496a-a41b-d9940572501f",
+        "content": "The user is Henoch. He is curious and happy. He loves to learn new things, discover the world and work on himself to be the best version of himself.",
+        "source": "user",
+        "timestamp": "2025-05-09T20:21:07.714750"
+    },
+    {
+        "id": 1,
+        "uid": "5c3a67ea-518d-4bea-9aca-c63b7ed6a11e",
+        "content": "In April 2025, Henoch was transitioning to the Automation Solutions Engineer role. He was working on a PM web app, AI game agent, and AI systems for data manipulation. He was also focused on personal growth, including habit tracking, blog writing, and calisthenics.",
+        "source": "notion",
+        "timestamp": "2025-05-09T20:28:38.861340"
+    },
+    {
+        "id": 2,
+        "uid": "bcaca594-866b-494c-b67e-954ad9be5e2a",
+        "content": "Henoch's relationships with Mat had ups and downs in April 2025, with some arguments but also good conversations. He also spent quality time with family and friends.",
+        "source": "notion",
+        "timestamp": "2025-05-09T20:28:38.861340"
+    },
+    {
+        "id": 3,
+        "uid": "3267cab0-8e18-4327-8c8d-276267f12dbe",
+        "content": "Henoch experienced a range of emotions in April 2025, from excitement about his new role to frustration with technical challenges and relationship issues. He also felt proud of his accomplishments and grateful for the support of others.",
+        "source": "notion",
+        "timestamp": "2025-05-09T20:28:38.861340"
+    },
+    {
+        "id": 4,
+        "uid": "4b83cebd-b7fa-4e3f-856d-e2b02c7c0cce",
+        "content": "The user lives in Madrid, his girlfriend is Mat (short for Mathilde), and he has two pets: a cat named Rio and a dog named Roma.",
+        "source": "user",
+        "timestamp": "2025-05-09T20:49:13.783178"
+    },
+    {
+        "id": 5,
+        "uid": "47a4ca7a-c519-4c19-8f69-f8b0b9e82c2f",
+        "content": "The AI assistant suggests new tools and features to enhance its capabilities, including calendar integration, contact management, file management, smart home integration, travel planning, shopping assistance, financial management, personalized news feed, language translation, advanced note-taking, document creation/editing, task management, and data analysis.",
+        "source": "user",
+        "timestamp": "2025-05-09T20:50:47.089008"
+    },
+    {
+        "id": 6,
+        "uid": "5f193659-fb2b-4bbd-9ea0-2a816b9ba3df",
+        "content": "The user suggested a multi-agent system for the AI assistant, with specialized agents for different domains like finance and travel. The AI assistant agreed that a hybrid approach might be the most effective, with a general-purpose agent delegating tasks to specialized agents as needed.",
+        "source": "user",
+        "timestamp": "2025-05-10T11:56:37.212918"
+    },
+    {
+        "id": 7,
+        "uid": "f314b762-6919-46a4-a9b5-9900f842ce81",
+        "content": "The user is considering a multi-agent system for the AI assistant and has saved a report on the topic for future reference.",
+        "source": "user",
+        "timestamp": "2025-05-10T12:08:17.025619"
+    },
+    {
+        "id": 8,
+        "uid": "2547e1cf-d43b-4178-bc0b-b7e53076c3c6",
+        "content": "User's Q2 goals: 1. (Work) Learn AI through projects, agents, and apps. 2. (Life) Regain calisthenics skills (handstands, planches, handstand pushups). Side quests: website updates, diet journal app launch, motorcycle trips, and relationship building.",
+        "source": "user",
+        "timestamp": "2025-05-11T23:41:28.133907"
+    },
+    {
+        "id": 9,
+        "uid": "e3c2a520-db3f-4677-b46e-16380e18cd59",
+        "content": "The file 'Jarvis_Weekly_Reflection_Manual.md' contains instructions for Jarvis to perform a weekly reflection on the user's Notion journal entries. The process includes retrieving entries, analyzing them, answering reflection questions, providing personalized feedback, and saving a detailed report.",
+        "source": "user",
+        "timestamp": "2025-05-12T00:10:58.251177"
+    },
+    {
+        "id": 10,
+        "uid": "a7ce296c-07cb-45c2-af6b-9d68bae88a34",
+        "content": "The user's Notion journaling entries are structured with Primary Tasks, Secondary Tasks, a Journal section, and a Notes/Ideas section. The date format is 'Weekday - Month Day, Year'.",
+        "source": "user",
+        "timestamp": "2025-05-12T00:12:24.117387"
+    },
+    {
+        "id": 11,
+        "uid": "e6b71601-3404-4e94-94d5-41c59ae5d8ec",
+        "content": "User rates Health & Vitality at 8/10, attributing it to consistent workouts.",
+        "source": "spring_reset_q2_2025",
+        "timestamp": "2025-05-18T19:59:13.610020"
+    },
+    {
+        "id": 12,
+        "uid": "de7d503f-aeae-496a-a57a-c2d2eb744f40",
+        "content": "User rates Work & Ambition at 10/10, citing significant progress.",
+        "source": "spring_reset_q2_2025",
+        "timestamp": "2025-05-18T19:59:17.840489"
+    },
+    {
+        "id": 13,
+        "uid": "6847816e-171b-470a-8472-4cd5175ecd36",
+        "content": "User rates Money & Finances at 6/10, mentioning tracking methods and debt reduction.",
+        "source": "spring_reset_q2_2025",
+        "timestamp": "2025-05-18T19:59:19.888836"
+    },
+    {
+        "id": 14,
+        "uid": "4641b2e3-e81f-46d5-b640-8311d1d96517",
+        "content": "User rates Relationships & Love at 8/10, noting happiness but dependence on partner for further progress.",
+        "source": "spring_reset_q2_2025",
+        "timestamp": "2025-05-18T19:59:21.222919"
+    },
+    {
+        "id": 15,
+        "uid": "2ff6fd07-42c8-454e-80b3-9128af058591",
+        "content": "User rates Family & Friends at 6/10, citing family struggles and improving friendships.",
+        "source": "spring_reset_q2_2025",
+        "timestamp": "2025-05-18T19:59:22.436773"
+    },
+    {
+        "id": 16,
+        "uid": "8e9d4598-6eac-4596-8d82-734a696ea811",
+        "content": "User rates Learning & Growth at 9/10, expressing high satisfaction.",
+        "source": "spring_reset_q2_2025",
+        "timestamp": "2025-05-18T19:59:23.487343"
+    },
+    {
+        "id": 17,
+        "uid": "19223999-c870-42b0-9d61-355255306e70",
+        "content": "User rates Adventure & Excitement at 6/10, planning to improve with calisthenics and motorcycle trips.",
+        "source": "spring_reset_q2_2025",
+        "timestamp": "2025-05-18T19:59:24.600911"
+    },
+    {
+        "id": 18,
+        "uid": "6d7077ec-2fc0-4564-962a-71d31e46b456",
+        "content": "User rates Inner Peace & Spirituality at 4/10, acknowledging a need for improvement.",
+        "source": "spring_reset_q2_2025",
+        "timestamp": "2025-05-18T19:59:25.840398"
+    },
+    {
+        "id": 19,
+        "uid": "ca3e3a48-4bc3-4a5a-8ddb-af933cc46cf6",
+        "content": "User received a raise and a new position in the data team.",
+        "source": "spring_reset_q2_2025",
+        "timestamp": "2025-05-18T19:59:26.966703"
+    },
+    {
+        "id": 20,
+        "uid": "c12c2596-71ed-413c-b1d5-72c1c894f8d0",
+        "content": "User feels current company job is temporary and wants to focus on a side hustle.",
+        "source": "spring_reset_q2_2025",
+        "timestamp": "2025-05-18T19:59:28.092283"
+    },
+    {
+        "id": 21,
+        "uid": "585dc0af-b6fd-4cfc-9d4b-251a37a9df1a",
+        "content": "User finds website development, automations, AI, and app development energizing.",
+        "source": "spring_reset_q2_2025",
+        "timestamp": "2025-05-18T19:59:29.118442"
+    },
+    {
+        "id": 22,
+        "uid": "43292873-0ef8-44e7-8c35-3c248401511a",
+        "content": "User finds deliveries, waiting for QC, senseless meetings, and overcommitment draining.",
+        "source": "spring_reset_q2_2025",
+        "timestamp": "2025-05-18T19:59:30.113098"
+    },
+    {
+        "id": 23,
+        "uid": "7b382c00-63f4-4264-b89d-71b52cd122b6",
+        "content": "User finds organizing, achieving goals, having a dog, workouts, nature, dinners, cleaning, reading, moto trips, and photography energizing.",
+        "source": "user",
+        "timestamp": "2025-05-18T20:03:30.949284"
+    },
+    {
+        "id": 24,
+        "uid": "f6e8034a-0c97-408f-9222-55ef61d0ef34",
+        "content": "User's Life Main Quest is motivated by the desire to regain strength and energy.",
+        "source": "user",
+        "timestamp": "2025-05-18T20:03:31.999515"
+    },
+    {
+        "id": 25,
+        "uid": "bce67bf5-f2e5-4a1e-8e78-10bd5efb8811",
+        "content": "User needs to stop comparing current performance to past performance and start from scratch for the Life Main Quest.",
+        "source": "user",
+        "timestamp": "2025-05-18T20:03:36.745283"
+    },
+    {
+        "id": 26,
+        "uid": "3449daf5-feac-430b-8e0a-2673969c0684",
+        "content": "User's Q2 goals: 1. (Work) Learn AI through projects, agents, and apps. 2. (Life) Regain calisthenics skills (handstands, planches, handstand pushups). Side quests: website updates, diet journal app launch, motorcycle trips, and relationship building.",
+        "source": "user",
+        "timestamp": "2025-05-19T00:09:24.919269"
+    },
+    {
+        "id": 27,
+        "uid": "c602cc94-926c-485e-96c3-a0bfc6fd3940",
+        "content": "The user committed to taking 50 courses/articles and putting learnings into practice for his Work Main Quest.",
+        "source": "user",
+        "timestamp": "2025-05-19T00:16:33.146582"
+    },
+    {
+        "id": 28,
+        "uid": "9d1aa2c5-38ae-49ba-86fd-844fbd2d47b4",
+        "content": "Jarvis's Weekly Reflection Process: Retrieves Notion journal entries, analyzes them, answers reflection questions, provides personalized feedback, generates a detailed report in the first person ('I' format), saves the report as a markdown file, and opens the report for review.",
+        "source": "other",
+        "timestamp": "2025-05-19T18:13:43.683333"
+    },
+    {
+        "id": 29,
+        "uid": "e0b641c9-e85f-40e0-b338-f855c0a65596",
+        "content": "Instruction manual for generating 'The Journey' newsletter each month, summarizing activities, insights, and goals from Notion journaling entries. The newsletter follows a specific structure outlined in the manual.",
+        "source": "user",
+        "timestamp": "2025-05-20T14:29:13.003582"
+    },
+    {
+        "id": 30,
+        "uid": "4f6a8d17-c4d7-4c54-a20c-a3f5b41b5943",
+        "content": "The user wants to create a monthly newsletter called 'The Journey' based on his Notion journal entries. The newsletter should follow a specific structure, including sections for 'This Month in Review,' 'Lessons & Insights,' 'Looking Ahead,' and 'Community Corner.'",
+        "source": "user",
+        "timestamp": "2025-05-20T14:29:26.537472"
+    },
+    {
+        "id": 31,
+        "uid": "74fdb07f-3e88-4b1d-a9f5-cd044051219d",
+        "content": "Created a basic Streamlit chat interface for the user, saved as jarvis_chat.py in the outputs/code/streamlit directory. The code includes a placeholder response that needs to be replaced with the actual Jarvis logic.",
+        "source": "user",
+        "timestamp": "2025-05-20T14:56:04.497973"
+    },
+    {
+        "id": 32,
+        "uid": "0c44e4c2-a428-4d9f-8c05-e2780ba7a9d8",
+        "content": "The file 'jarvis_chat.py' contains a basic Streamlit chat interface for Jarvis, with placeholder response logic that needs to be replaced with actual Jarvis capabilities.",
+        "source": "user",
+        "timestamp": "2025-05-20T15:54:42.232411"
+    },
+    {
+        "id": 33,
+        "uid": "d270bdae-fccb-409e-9876-996030af7355",
+        "content": "Possibilities to access the streamlit app from phone: Streamlit Sharing (Streamlit Community Cloud), Deploy to a Cloud Platform (Heroku, AWS, Google Cloud, Azure), Port Forwarding (Advanced), Reverse Proxy (Advanced)",
+        "source": "user",
+        "timestamp": "2025-05-21T20:15:00.632769"
+    }
+]
