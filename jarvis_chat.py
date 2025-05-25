@@ -33,14 +33,38 @@ def invoke_jarvis(prompt):
         if role != role_buffer:
             if content_buffer:
                 # Finalize previous role's message
-                if role == "ai":
+                processed_content_for_history = content_buffer
+                if role_buffer == "ai":
                     container.markdown(content_buffer)
-                elif role == "tool":
-                    container.code(content_buffer)
+                elif role_buffer == "tool":
+                    # This is the rendering logic for the *previous* message.
+                    # We also need to prepare content_buffer for history.
+                    stripped_content = content_buffer.strip()
+                    if isinstance(content_buffer, dict):
+                        processed_content_for_history = json.dumps(content_buffer, indent=2)
+                        # container.code(processed_content_for_history, language="json") # Already rendered by stream
+                    elif stripped_content.startswith("{") or stripped_content.startswith("["):
+                        # container.code(content_buffer, language="json") # Already rendered
+                        pass # processed_content_for_history is already content_buffer
+                    elif any(stripped_content.startswith(pfx) for pfx in ["def ", "class ", "import ", "#"]):
+                        # container.code(content_buffer, language="python") # Already rendered
+                        pass
+                    elif stripped_content.startswith("```"):
+                        lines = content_buffer.splitlines()
+                        if len(lines) > 1:
+                            # lang_spec = lines[0][3:].strip()
+                            processed_content_for_history = "\n".join(lines[1:-1]) if lines[-1].strip() == "```" else "\n".join(lines[1:])
+                            # container.code(extracted_code, language=lang_spec if lang_spec else "text") # Already rendered
+                        # else: container.code(content_buffer, language="text") # Already rendered
+                    # else: container.code(content_buffer, language="text") # Already rendered
+                
+                # Determine avatar for the role_buffer that just finished
+                previous_avatar = "🤖" if role_buffer == "ai" else "🔨" if role_buffer == "tool" else ""
+
                 st.session_state.messages.append({
-                    "role": role,
-                    "avatar": avatar,
-                    "content": content_buffer
+                    "role": role_buffer, # Should be role_buffer for the message that just ended
+                    "avatar": previous_avatar, # Avatar for the role_buffer
+                    "content": processed_content_for_history
                 })
 
             # Start new message container
@@ -53,57 +77,68 @@ def invoke_jarvis(prompt):
         if role_buffer == "ai":
             container.markdown(content_buffer + "▌")
         elif role_buffer == "tool":
-            # Try to pretty-render structured tool outputs
+            stripped_content = content_buffer.strip()
             if isinstance(content_buffer, dict):
-                # If the content_buffer is actually a dict (sometimes it is!), render it as formatted JSON
                 formatted = json.dumps(content_buffer, indent=2)
                 container.code(formatted, language="json")
-
-            elif content_buffer.strip().startswith("{") or content_buffer.strip().startswith("["):
-                # Likely JSON string
+            elif stripped_content.startswith("{") or stripped_content.startswith("["):
                 container.code(content_buffer, language="json")
-
-            elif any(content_buffer.strip().startswith(pfx) for pfx in ["def ", "function ", "class ", "#", "import "]):
-                # Looks like Python or generic code
+            elif any(stripped_content.startswith(pfx) for pfx in ["def ", "class ", "import ", "#"]):
                 container.code(content_buffer, language="python")
-
-            elif content_buffer.strip().startswith("```"):
-                # Already formatted code block from the LLM
-                container.markdown(content_buffer)
-
+            elif stripped_content.startswith("```"):
+                # Extract content and language from markdown code block
+                lines = content_buffer.splitlines()
+                if len(lines) > 1:
+                    lang_spec = lines[0][3:].strip()
+                    extracted_code = "\n".join(lines[1:-1]) if lines[-1].strip() == "```" else "\n".join(lines[1:])
+                    container.code(extracted_code, language=lang_spec if lang_spec else "text")
+                else:
+                    # Fallback if format is unexpected
+                    container.code(content_buffer, language="text")
             else:
-                # Default fallback
-                container.markdown(content_buffer)
+                container.code(content_buffer, language="text")
 
     # Final flush
     if content_buffer:
         if role_buffer == "ai":
             container.markdown(content_buffer)
         elif role_buffer == "tool":
+            stripped_content = content_buffer.strip()
             if isinstance(content_buffer, dict):
-                # If the content_buffer is actually a dict (sometimes it is!), render it as formatted JSON
                 formatted = json.dumps(content_buffer, indent=2)
                 container.code(formatted, language="json")
-
-            elif content_buffer.strip().startswith("{") or content_buffer.strip().startswith("["):
-                # Likely JSON string
+            elif stripped_content.startswith("{") or stripped_content.startswith("["):
                 container.code(content_buffer, language="json")
-
-            elif any(content_buffer.strip().startswith(pfx) for pfx in ["def ", "function ", "class ", "#", "import "]):
-                # Looks like Python or generic code
+            elif any(stripped_content.startswith(pfx) for pfx in ["def ", "class ", "import ", "#"]):
                 container.code(content_buffer, language="python")
-
-            elif content_buffer.strip().startswith("```"):
-                # Already formatted code block from the LLM
-                container.markdown(content_buffer)
-
+            elif stripped_content.startswith("```"):
+                # Extract content and language from markdown code block
+                lines = content_buffer.splitlines()
+                if len(lines) > 1:
+                    lang_spec = lines[0][3:].strip()
+                    extracted_code = "\n".join(lines[1:-1]) if lines[-1].strip() == "```" else "\n".join(lines[1:])
+                    container.code(extracted_code, language=lang_spec if lang_spec else "text")
+                else:
+                    # Fallback if format is unexpected
+                    container.code(content_buffer, language="text")
             else:
-                # Default fallback
-                container.markdown(content_buffer)
+                container.code(content_buffer, language="text")
+            
+            # Prepare content for history
+            processed_content_for_history = content_buffer
+            if isinstance(content_buffer, dict):
+                processed_content_for_history = json.dumps(content_buffer, indent=2)
+            elif stripped_content.startswith("```"): # stripped_content is already defined in this block
+                lines = content_buffer.splitlines()
+                if len(lines) > 1:
+                    processed_content_for_history = "\n".join(lines[1:-1]) if lines[-1].strip() == "```" else "\n".join(lines[1:])
+            # For other tool types (plain JSON string, python code, text), 
+            # content_buffer is already the string to be stored.
+            
         st.session_state.messages.append({
             "role": role_buffer,
-            "avatar": avatar,
-            "content": content_buffer
+            "avatar": avatar, # Avatar is already correct for the current role_buffer
+            "content": processed_content_for_history if role_buffer == "tool" else content_buffer
         })
 
 # Set page title and icon
