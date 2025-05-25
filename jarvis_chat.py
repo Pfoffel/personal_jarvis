@@ -33,12 +33,12 @@ def invoke_jarvis(prompt):
         if role != role_buffer:
             if content_buffer:
                 # Finalize previous role's message
-                if role_buffer == "ai":
+                if role == "ai":
                     container.markdown(content_buffer)
-                elif role_buffer == "tool":
+                elif role == "tool":
                     container.code(content_buffer)
                 st.session_state.messages.append({
-                    "role": role_buffer,
+                    "role": role,
                     "avatar": avatar,
                     "content": content_buffer
                 })
@@ -80,7 +80,26 @@ def invoke_jarvis(prompt):
         if role_buffer == "ai":
             container.markdown(content_buffer)
         elif role_buffer == "tool":
-            container.code(content_buffer)
+            if isinstance(content_buffer, dict):
+                # If the content_buffer is actually a dict (sometimes it is!), render it as formatted JSON
+                formatted = json.dumps(content_buffer, indent=2)
+                container.code(formatted, language="json")
+
+            elif content_buffer.strip().startswith("{") or content_buffer.strip().startswith("["):
+                # Likely JSON string
+                container.code(content_buffer, language="json")
+
+            elif any(content_buffer.strip().startswith(pfx) for pfx in ["def ", "function ", "class ", "#", "import "]):
+                # Looks like Python or generic code
+                container.code(content_buffer, language="python")
+
+            elif content_buffer.strip().startswith("```"):
+                # Already formatted code block from the LLM
+                container.markdown(content_buffer)
+
+            else:
+                # Default fallback
+                container.markdown(content_buffer)
         st.session_state.messages.append({
             "role": role_buffer,
             "avatar": avatar,
