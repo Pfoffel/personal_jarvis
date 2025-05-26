@@ -77,8 +77,11 @@ def invoke_jarvis(prompt):
         if role_buffer == "ai":
             container.markdown(content_buffer + "▌")
         elif role_buffer == "tool":
-            # With the prefix "Tool: name\n\n", complex language detection is unlikely to work.
-            # Default to "text" as per instructions, rendering the whole buffer including prefix.
+            # Tool Message Rendering (Streaming Loop):
+            # content_buffer includes the "Tool: [tool_name]\n\n" prefix.
+            # This prefixed content is rendered directly as plain text within the code block.
+            # This approach simplifies rendering; specific language detection (JSON, Python, etc.)
+            # for the tool's raw output is not applied here.
             container.code(content_buffer, language="text")
 
     # Final flush
@@ -86,20 +89,32 @@ def invoke_jarvis(prompt):
         if role_buffer == "ai":
             container.markdown(content_buffer)
         elif role_buffer == "tool":
-            # With the prefix "Tool: name\n\n", complex language detection is unlikely to work.
-            # Default to "text" as per instructions, rendering the whole buffer including prefix.
+            # Tool Message Rendering (Final Flush):
+            # content_buffer includes the "Tool: [tool_name]\n\n" prefix.
+            # This prefixed content is rendered directly as plain text within the code block,
+            # similar to the streaming logic.
             container.code(content_buffer, language="text")
             
-            # Prepare content for history
+            # History Saving Logic (Final Flush for Tool Messages):
+            # For tool messages, content_buffer is now a string starting with "Tool: [tool_name]\n\n".
             processed_content_for_history = content_buffer
+            
+            # The following conditional block is legacy from when tool content was processed differently.
+            # For current tool messages (prefixed strings):
+            # - `isinstance(content_buffer, dict)` will be false.
+            # - `stripped_content` is not defined in this scope, so `elif stripped_content.startswith("```")`
+            #   would cause an error if reached by a tool message (but it won't be due to the above).
+            #   This path might be relevant if non-tool, non-AI messages were processed here
+            #   and `stripped_content` was defined.
+            # As a result, for tool messages, `processed_content_for_history` correctly remains
+            # the full, prefixed `content_buffer` string set above.
             if isinstance(content_buffer, dict):
                 processed_content_for_history = json.dumps(content_buffer, indent=2)
-            elif stripped_content.startswith("```"): # stripped_content is already defined in this block
-                lines = content_buffer.splitlines()
-                if len(lines) > 1:
-                    processed_content_for_history = "\n".join(lines[1:-1]) if lines[-1].strip() == "```" else "\n".join(lines[1:])
-            # For other tool types (plain JSON string, python code, text), 
-            # content_buffer is already the string to be stored.
+            # The 'stripped_content' variable is not defined here. This path is not taken by tool messages.
+            # elif stripped_content.startswith("```"): 
+            #     lines = content_buffer.splitlines()
+            #     if len(lines) > 1:
+            #         processed_content_for_history = "\n".join(lines[1:-1]) if lines[-1].strip() == "```" else "\n".join(lines[1:])
             
         st.session_state.messages.append({
             "role": role_buffer,
