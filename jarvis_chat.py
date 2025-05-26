@@ -15,6 +15,7 @@ def invoke_jarvis(prompt):
     role_buffer = None
     content_buffer = ""
     container = None
+    current_tool_name = None # To store the name of the current tool
     for chunk in personal_agent.stream({
             "messages":[
                 system_memory,
@@ -33,31 +34,20 @@ def invoke_jarvis(prompt):
         if role != role_buffer:
             if content_buffer:
                 # Finalize previous role's message
+                # For AI messages, content_buffer is fine.
+                # For Tool messages, content_buffer now includes the "Tool: name\n\n" prefix,
+                # and this entire string should be saved to history.
                 processed_content_for_history = content_buffer
-                if role_buffer == "ai":
-                    container.markdown(content_buffer)
-                elif role_buffer == "tool":
-                    # This is the rendering logic for the *previous* message.
-                    # We also need to prepare content_buffer for history.
-                    stripped_content = content_buffer.strip()
-                    if isinstance(content_buffer, dict):
-                        processed_content_for_history = json.dumps(content_buffer, indent=2)
-                        # container.code(processed_content_for_history, language="json") # Already rendered by stream
-                    elif stripped_content.startswith("{") or stripped_content.startswith("["):
-                        # container.code(content_buffer, language="json") # Already rendered
-                        pass # processed_content_for_history is already content_buffer
-                    elif any(stripped_content.startswith(pfx) for pfx in ["def ", "class ", "import ", "#"]):
-                        # container.code(content_buffer, language="python") # Already rendered
-                        pass
-                    elif stripped_content.startswith("```"):
-                        lines = content_buffer.splitlines()
-                        if len(lines) > 1:
-                            # lang_spec = lines[0][3:].strip()
-                            processed_content_for_history = "\n".join(lines[1:-1]) if lines[-1].strip() == "```" else "\n".join(lines[1:])
-                            # container.code(extracted_code, language=lang_spec if lang_spec else "text") # Already rendered
-                        # else: container.code(content_buffer, language="text") # Already rendered
-                    # else: container.code(content_buffer, language="text") # Already rendered
                 
+                if role_buffer == "ai":
+                    # This container.markdown is for the final display of the previous message,
+                    # if it wasn't fully streamed (though usually it is).
+                    container.markdown(content_buffer) 
+                elif role_buffer == "tool":
+                    # The container.code() for the previous tool message was already handled by the streaming logic.
+                    # No specific rendering action needed here for the *previous* tool message's container.
+                    pass
+
                 # Determine avatar for the role_buffer that just finished
                 previous_avatar = "🤖" if role_buffer == "ai" else "🔨" if role_buffer == "tool" else ""
 
@@ -70,59 +60,35 @@ def invoke_jarvis(prompt):
             # Start new message container
             container = st.chat_message(role, avatar=avatar).empty()
             role_buffer = role
-            content_buffer = ""
+            if role == 'tool':
+                current_tool_name = chunk[0].name # Capture tool name
+                content_buffer = f"Tool: {current_tool_name}\n\n"
+            else:
+                content_buffer = ""
+                current_tool_name = None # Reset for non-tool messages
 
         # Stream content
-        content_buffer += content
+        # For tool calls, the first chunk of 'content' might be the arguments,
+        # so we append it only if it's not the initial prefix setup.
+        if role == 'tool' and content_buffer == f"Tool: {current_tool_name}\n\n" and (content == "Making a tool call..." or not content):
+            pass # Avoid appending redundant "Making a tool call..." or empty content if prefix is already set
+        else:
+            content_buffer += content
         if role_buffer == "ai":
             container.markdown(content_buffer + "▌")
         elif role_buffer == "tool":
-            stripped_content = content_buffer.strip()
-            if isinstance(content_buffer, dict):
-                formatted = json.dumps(content_buffer, indent=2)
-                container.code(formatted, language="json")
-            elif stripped_content.startswith("{") or stripped_content.startswith("["):
-                container.code(content_buffer, language="json")
-            elif any(stripped_content.startswith(pfx) for pfx in ["def ", "class ", "import ", "#"]):
-                container.code(content_buffer, language="python")
-            elif stripped_content.startswith("```"):
-                # Extract content and language from markdown code block
-                lines = content_buffer.splitlines()
-                if len(lines) > 1:
-                    lang_spec = lines[0][3:].strip()
-                    extracted_code = "\n".join(lines[1:-1]) if lines[-1].strip() == "```" else "\n".join(lines[1:])
-                    container.code(extracted_code, language=lang_spec if lang_spec else "text")
-                else:
-                    # Fallback if format is unexpected
-                    container.code(content_buffer, language="text")
-            else:
-                container.code(content_buffer, language="text")
+            # With the prefix "Tool: name\n\n", complex language detection is unlikely to work.
+            # Default to "text" as per instructions, rendering the whole buffer including prefix.
+            container.code(content_buffer, language="text")
 
     # Final flush
     if content_buffer:
         if role_buffer == "ai":
             container.markdown(content_buffer)
         elif role_buffer == "tool":
-            stripped_content = content_buffer.strip()
-            if isinstance(content_buffer, dict):
-                formatted = json.dumps(content_buffer, indent=2)
-                container.code(formatted, language="json")
-            elif stripped_content.startswith("{") or stripped_content.startswith("["):
-                container.code(content_buffer, language="json")
-            elif any(stripped_content.startswith(pfx) for pfx in ["def ", "class ", "import ", "#"]):
-                container.code(content_buffer, language="python")
-            elif stripped_content.startswith("```"):
-                # Extract content and language from markdown code block
-                lines = content_buffer.splitlines()
-                if len(lines) > 1:
-                    lang_spec = lines[0][3:].strip()
-                    extracted_code = "\n".join(lines[1:-1]) if lines[-1].strip() == "```" else "\n".join(lines[1:])
-                    container.code(extracted_code, language=lang_spec if lang_spec else "text")
-                else:
-                    # Fallback if format is unexpected
-                    container.code(content_buffer, language="text")
-            else:
-                container.code(content_buffer, language="text")
+            # With the prefix "Tool: name\n\n", complex language detection is unlikely to work.
+            # Default to "text" as per instructions, rendering the whole buffer including prefix.
+            container.code(content_buffer, language="text")
             
             # Prepare content for history
             processed_content_for_history = content_buffer
