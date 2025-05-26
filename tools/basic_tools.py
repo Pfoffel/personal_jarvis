@@ -49,7 +49,7 @@ def list_files():
 def load_file_content(path: str) -> str:
     """ loads the files content as a str given the path to it"""
     try:
-        with open(path, "r", encoding='utf-8') as f:
+        with open(path, "r") as f:
             return f.read()
     except Exception as e:
         return f"Error Occurred when reading file: {e}"
