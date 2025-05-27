@@ -25,7 +25,7 @@ SCOPES = [
 # IMPORTANT: In a production web application, you should load these credentials
 # from environment variables or a secure secrets management system, NOT directly
 # from a file committed to your repository.
-CLIENT_SECRETS_FILE = 'config/credentials.json'
+CLIENT_SECRETS_FILE = 'secrets/credentials.json'
 
 # The redirect URI configured in your Google Cloud project for "Web application" client ID.
 # This must match exactly what you entered in the Google Cloud Console.
@@ -39,8 +39,8 @@ def get_google_drive_service():
     """
     creds = None
     
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if os.path.exists('secrets/token.json'):
+        creds = Credentials.from_authorized_user_file('secrets/token.json', SCOPES)
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
@@ -67,7 +67,7 @@ def get_google_drive_service():
                 return None # Exit if authentication fails
             # --- END IMPORTANT CHANGE ---
 
-        with open('token.json', 'w') as token:
+        with open('secrets/token.json', 'w') as token:
             token.write(creds.to_json())
     
     try:

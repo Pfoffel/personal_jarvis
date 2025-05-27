@@ -137,6 +137,8 @@ ENV/
 env.bak/
 venv.bak/
 
+secrets
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -175,5 +177,3 @@ cython_debug/
 .pypirc
 
 
-token.json
-credentials.json
