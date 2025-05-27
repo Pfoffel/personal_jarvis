@@ -5,7 +5,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 from googleapiclient.errors import HttpError
 
 # --- Configuration ---
@@ -59,6 +59,7 @@ def get_google_drive_service():
             # Use run_local_server() to handle the redirect automatically.
             # It will open a browser, handle the redirect, and fetch the token.
             # You usually don't need to manually enter the URL.
+            # https://personaljarvis.streamlit.app
             try:
                 creds = flow.run_local_server(port=0) # port=0 tells it to find an available port
             except Exception as e:
@@ -115,9 +116,9 @@ def create_folder(service, folder_name, parent_folder_id=None):
         print(f"An unexpected error occurred while creating folder: {e}")
         return None
 
-def upload_file(service, file_path, file_name, mime_type, parent_folder_id=None):
+def upload_file(service, file_path, file_name, mime_type, parent_folder_id=None, convert_to_google_doc=False):
     """
-    Uploads a new file to Google Drive.
+    Uploads a new file to Google Drive. Optionally converts it to Google Docs format.
 
     Args:
         service: Google Drive API service object.
@@ -125,6 +126,8 @@ def upload_file(service, file_path, file_name, mime_type, parent_folder_id=None)
         file_name: The desired name of the file in Google Drive.
         mime_type: The MIME type of the file (e.g., 'text/plain', 'image/jpeg').
         parent_folder_id: (Optional) The ID of the parent folder. If None, uploads to My Drive root.
+        convert_to_google_doc: If True, attempts to convert the uploaded file to a Google Docs document.
+                               Requires appropriate source file type (e.g., text/plain, application/msword).
 
     Returns:
         The ID of the uploaded file, or None if an error occurred.
@@ -133,10 +136,22 @@ def upload_file(service, file_path, file_name, mime_type, parent_folder_id=None)
     if parent_folder_id:
         file_metadata['parents'] = [parent_folder_id]
 
+    # --- THE CRITICAL CHANGE FOR CONVERSION IS HERE ---
+    if convert_to_google_doc:
+        file_metadata['mimeType'] = 'application/vnd.google-apps.document'
+    # --- END CRITICAL CHANGE ---
+
     media = MediaFileUpload(file_path, mimetype=mime_type, resumable=True)
+
     try:
-        file = service.files().create(body=file_metadata, media_body=media, fields='id, name').execute()
-        print(f"File '{file.get('name')}' uploaded with ID: {file.get('id')}")
+        file = service.files().create(
+            body=file_metadata, # This body now includes the target MIME type if converting
+            media_body=media,
+            fields='id, name, mimeType',
+        ).execute()
+        
+        conversion_status = "and converted to Google Doc" if file.get('mimeType') == 'application/vnd.google-apps.document' else ""
+        print(f"File '{file.get('name')}' uploaded {conversion_status} with ID: {file.get('id')} (MIME: {file.get('mimeType')})")
         return file.get('id')
     except HttpError as error:
         print(f"An HTTP error occurred while uploading file: {error}")
@@ -146,16 +161,21 @@ def upload_file(service, file_path, file_name, mime_type, parent_folder_id=None)
         print(f"An unexpected error occurred while uploading file: {e}")
         return None
 
-def update_file_content(service, file_id, new_file_path, new_mime_type=None, new_name=None):
+def update_file_content(service, file_id, new_file_path, new_mime_type=None, new_name=None, convert_to_google_doc=False):
     """
     Updates the content and/or metadata of an existing file in Google Drive.
+    Optionally converts it to Google Docs format during update.
 
     Args:
         service: Google Drive API service object.
         file_id: The ID of the file to update.
         new_file_path: The local path to the new content for the file.
         new_mime_type: (Optional) The new MIME type of the file.
+                       This should be the source MIME type of the content being uploaded.
         new_name: (Optional) The new name for the file.
+        convert_to_google_doc: If True, attempts to convert the updated file to a Google Docs document.
+                               Requires appropriate source file type. This implies the target file
+                               will become a Google Doc if it wasn't already.
 
     Returns:
         The ID of the updated file, or None if an error occurred.
@@ -163,18 +183,26 @@ def update_file_content(service, file_id, new_file_path, new_mime_type=None, new
     file_metadata = {}
     if new_name:
         file_metadata['name'] = new_name
-    if new_mime_type:
-        file_metadata['mimeType'] = new_mime_type
+    
+    # --- THE CRITICAL CHANGE FOR CONVERSION IS HERE (for updates) ---
+    # When converting an existing file type to a Google Doc during an update,
+    # you explicitly set the target MIME type in the body.
+    if convert_to_google_doc:
+        file_metadata['mimeType'] = 'application/vnd.google-apps.document'
+    # --- END CRITICAL CHANGE ---
 
     media = MediaFileUpload(new_file_path, mimetype=new_mime_type, resumable=True)
+    
     try:
         updated_file = service.files().update(
             fileId=file_id,
-            body=file_metadata,
+            body=file_metadata, # This body now includes the target MIME type if converting
             media_body=media,
-            fields='id, name'
+            fields='id, name, mimeType'
         ).execute()
-        print(f"File '{updated_file.get('name')}' (ID: {updated_file.get('id')}) updated successfully.")
+        
+        conversion_status = "and converted to Google Doc" if updated_file.get('mimeType') == 'application/vnd.google-apps.document' else ""
+        print(f"File '{updated_file.get('name')}' (ID: {updated_file.get('id')}) updated {conversion_status} successfully. (MIME: {updated_file.get('mimeType')})")
         return updated_file.get('id')
     except HttpError as error:
         print(f"An HTTP error occurred while updating file: {error}")
@@ -306,6 +334,39 @@ def list_files_and_folders(service, query=None, page_size=100):
         print(f"An unexpected error occurred while listing files: {e}")
         return []
 
+def create_google_doc(service, doc_name, parent_folder_id=None):
+    """
+    Creates a new EMPTY Google Docs document in Google Drive.
+    To add content, use upload_file with convert_to_google_doc=True
+    or update_file_content with convert_to_google_doc=True.
+
+    Args:
+        service: Google Drive API service object.
+        doc_name: The desired name of the Google Docs document.
+        parent_folder_id: (Optional) The ID of the parent folder. If None, creates in My Drive root.
+
+    Returns:
+        The ID of the created Google Docs document, or None if an error occurred.
+    """
+    file_metadata = {
+        'name': doc_name,
+        'mimeType': 'application/vnd.google-apps.document'  # MIME type for Google Docs
+    }
+    if parent_folder_id:
+        file_metadata['parents'] = [parent_folder_id]
+
+    try:
+        doc = service.files().create(body=file_metadata, fields='id, name, mimeType').execute()
+        print(f"Google Docs document '{doc.get('name')}' created with ID: {doc.get('id')} (MIME: {doc.get('mimeType')})")
+        return doc.get('id')
+    except HttpError as error:
+        print(f"An HTTP error occurred while creating Google Docs document: {error}")
+        print(f"Error details: {error.content.decode('utf-8')}")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred while creating Google Docs document: {e}")
+        return None
+
 # --- Example Usage ---
 if __name__ == '__main__':
     # 1. Get the Google Drive service object
@@ -314,71 +375,102 @@ if __name__ == '__main__':
     if drive_service:
         print("\n--- Performing example operations ---")
 
-        # Create a dummy file for testing uploads/updates
-        dummy_file_content = "This is a test document created by the Python script."
-        with open("test_upload.txt", "w") as f:
-            f.write(dummy_file_content)
+        # Create dummy files for testing uploads/updates
+        # Content for a new document
+        doc_initial_content = "This is the initial content for the Google Doc.\n\n" \
+                              "It demonstrates how to create a Google Doc from a plain text file."
+        with open("doc_initial.txt", "w") as f:
+            f.write(doc_initial_content)
         
-        updated_dummy_file_content = "This content has been updated by the script."
-        with open("test_update.txt", "w") as f:
-            f.write(updated_dummy_file_content)
+        # Content for updating an existing document
+        doc_updated_content = "This content has been UPDATED for the Google Doc.\n\n" \
+                              "This shows that you can revise Google Docs by uploading new content."
+        with open("doc_updated.txt", "w") as f:
+            f.write(doc_updated_content)
+
+        # Content for a regular text file upload
+        regular_text_content = "This is a regular text file, not a Google Doc."
+        with open("regular_text_file.txt", "w") as f:
+            f.write(regular_text_content)
+
 
         # Example 1: Create a folder
-        # my_app_folder_id = create_folder(drive_service, "MyWebAppFiles")
+        # my_app_folder_id = create_folder(drive_service, "MyWebAppDocs")   
         my_app_folder_id = "1bdoTuKf91iuOjGWUC-36wuM1Dww0sdxp"
         
         if my_app_folder_id:
-            # Example 2: Upload a file to the created folder
-            uploaded_file_id = upload_file(
+            # --- NEW EXAMPLE: Upload a plain text file and convert it to a Google Doc ---
+            print("\n--- Creating Google Doc from local text file ---")
+            converted_doc_id = upload_file(
                 drive_service,
-                "test_upload.txt",
-                "MyFirstWebAppDoc.txt",
-                "text/plain",
-                parent_folder_id=my_app_folder_id
+                r"outputs\writing\manuals\The_Journey_Newsletter_Manual.md",
+                "Converted Google Doc from Text",
+                "text/markdown", # Source MIME type
+                parent_folder_id=my_app_folder_id,
+                convert_to_google_doc=True
             )
 
-            if uploaded_file_id:
-                # Example 3: Update the content of the uploaded file
-                update_file_content(
-                    drive_service,
-                    uploaded_file_id,
-                    "test_update.txt",
-                    new_name="MyUpdatedWebAppDoc.txt"
-                )
+            if converted_doc_id:
+                print(f"Created Google Doc from text with ID: {converted_doc_id}")
 
-                # Example 4: Download the updated file
-                download_binary_file(
-                    drive_service,
-                    uploaded_file_id,
-                    "downloaded_updated_doc.txt"
-                )
+                # --- NEW EXAMPLE: Update the content of the CONVERTED Google Doc ---
+                # print("\n--- Updating content of the converted Google Doc ---")
+                # updated_converted_doc_id = update_file_content(
+                #     drive_service,
+                #     converted_doc_id,
+                #     "doc_updated.txt",
+                #     new_mime_type="text/plain", # Source MIME type of the content being uploaded for update
+                #     new_name="Updated Converted Google Doc",
+                #     # No need for convert_to_google_doc=True here if it's already a Google Doc
+                # )
+                # if updated_converted_doc_id:
+                #     print(f"Updated Google Doc with ID: {updated_converted_doc_id}")
             
-            # Example 5: List files within the created folder
+            # --- Original Example: Upload a regular file (not converted) ---
+            # print("\n--- Uploading a regular text file ---")
+            # uploaded_file_id = upload_file(
+            #     drive_service,
+            #     "regular_text_file.txt",
+            #     "MyRegularWebAppDoc.txt",
+            #     "text/plain",
+            #     parent_folder_id=my_app_folder_id
+            # )
+
+            # if uploaded_file_id:
+            #     print(f"Uploaded regular text file with ID: {uploaded_file_id}")
+            
+            # --- Original Example: List files within the created folder ---
             print(f"\nListing files in folder '{my_app_folder_id}':")
             list_files_and_folders(drive_service, query=f"'{my_app_folder_id}' in parents and trashed = false")
 
-        # Example 6: List all text files in My Drive
-        # print("\nListing all text files in My Drive:")
-        # list_files_and_folders(drive_service, query="mimeType='text/plain'")
-
-        # Example 7: Export a hypothetical Google Docs file (replace with a real ID if you have one)
+            # --- Original Example: Create an empty Google Docs document (still valid for empty docs) ---
+            # print("\n--- Creating an empty Google Docs document ---")
+            # empty_doc_id = create_google_doc(drive_service, "My Empty Google Doc", parent_folder_id=my_app_folder_id)
+            # if empty_doc_id:
+            #     print(f"Created empty Google Doc with ID: {empty_doc_id}")
+            
+        # Example: Export a hypothetical Google Docs file (replace with a real ID if you have one)
         # For this to work, you need a Google Docs file ID that your app has access to.
-        # google_doc_example_id = "YOUR_GOOGLE_DOC_FILE_ID_HERE"
-        # if google_doc_example_id != "YOUR_GOOGLE_DOC_FILE_ID_HERE":
+        # This can be the `converted_doc_id` from the new example above!
+        # if converted_doc_id: # Use the ID from the newly created doc
         #     export_google_workspace_doc(
         #         drive_service,
-        #         google_doc_example_id,
+        #         converted_doc_id,
         #         "application/pdf",
-        #         "exported_google_doc.pdf"
+        #         "exported_converted_doc.pdf"
         #     )
         # else:
-        #     print("\nSkipping Google Docs export example. Provide a real Google Docs ID to test.")
+        #     print("\nSkipping Google Docs export example. Create a Google Doc first.")
 
         # Clean up dummy files
-        if os.path.exists("test_upload.txt"):
-            os.remove("test_upload.txt")
-        if os.path.exists("test_update.txt"):
-            os.remove("test_update.txt")
+        if os.path.exists("doc_initial.txt"):
+            os.remove("doc_initial.txt")
+        if os.path.exists("doc_updated.txt"):
+            os.remove("doc_updated.txt")
+        if os.path.exists("regular_text_file.txt"):
+            os.remove("regular_text_file.txt")
+        if os.path.exists("test_markdown_converted.html"):
+            os.remove("test_markdown_converted.html")
         
         print("\n--- Example operations complete ---")
     else:
