@@ -172,8 +172,8 @@ cython_debug/
 .ruff_cache/
 
 # PyPI configuration file
-<<<<<<< HEAD
 .pypirc
-=======
-.pypirc
->>>>>>> 26925adf7c1415321ad2ca26481762e419dd3ade
+
+
+token.json
+credentials.json
