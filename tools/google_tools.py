@@ -7,7 +7,7 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from googleapiclient.errors import HttpError
-from langchain.tools import tool
+# Removed: from langchain.tools import tool
 
 # --- Configuration ---
 SCOPES = [
@@ -40,10 +40,6 @@ class GoogleAuth:
             if not creds:
                 print("No valid credentials found. Initiating new authorization flow...")
                 flow = InstalledAppFlow.from_client_secrets_file(self.client_secrets_file, self.scopes)
-                # For production HTTPS deployment, you would set the redirect_uri like this:
-                # flow.redirect_uri = 'YOUR_HTTPS_REDIRECT_URI_HERE'
-                # print("Development mode: Using http://localhost for OAuth redirect.")
-                # print("Production reminder: Ensure 'YOUR_HTTPS_REDIRECT_URI_HERE' is updated and your Google Cloud OAuth client is configured for HTTPS.")
                 try:
                     creds = flow.run_local_server(port=0)
                 except Exception as e:
@@ -66,7 +62,6 @@ class GoogleAuth:
 
 # --- Standalone Google Drive Tool Functions ---
 
-@tool
 def create_folder(drive_service, folder_name: str, parent_folder_id: str = None):
     """
     Creates a new folder in Google Drive.
@@ -97,7 +92,6 @@ def create_folder(drive_service, folder_name: str, parent_folder_id: str = None)
         print(f"An unexpected error occurred while creating folder: {e}")
         return None
 
-@tool
 def upload_file(drive_service, file_path: str, file_name: str, mime_type: str, parent_folder_id: str = None, convert_to_google_doc: bool = False):
     """
     Uploads a new file to Google Drive. Optionally converts it to Google Docs format.
@@ -137,7 +131,6 @@ def upload_file(drive_service, file_path: str, file_name: str, mime_type: str, p
         print(f"An unexpected error occurred while uploading file: {e}")
         return None
 
-@tool
 def update_file_content(drive_service, file_id: str, new_file_path: str, new_mime_type: str = None, new_name: str = None, convert_to_google_doc: bool = False):
     """
     Updates the content and/or metadata of an existing file in Google Drive.
@@ -178,7 +171,6 @@ def update_file_content(drive_service, file_id: str, new_file_path: str, new_mim
         print(f"An unexpected error occurred while updating file: {e}")
         return None
 
-@tool
 def download_binary_file(drive_service, file_id: str, local_save_path: str):
     """
     Downloads a non-Google Workspace file from Google Drive.
@@ -211,7 +203,6 @@ def download_binary_file(drive_service, file_id: str, local_save_path: str):
         print(f"An unexpected error occurred while downloading file: {e}")
         return False
 
-@tool
 def export_google_workspace_doc(drive_service, file_id: str, export_mime_type: str, local_save_path: str):
     """
     Exports a Google Workspace document (e.g., Docs, Sheets) to a specified MIME type.
@@ -245,7 +236,6 @@ def export_google_workspace_doc(drive_service, file_id: str, export_mime_type: s
         print(f"An unexpected error occurred while exporting document: {e}")
         return False
 
-@tool
 def list_files_and_folders(drive_service, query: str = None, page_size: int = 100):
     """
     Lists files and folders in Google Drive, with optional query filtering and pagination.
@@ -288,7 +278,6 @@ def list_files_and_folders(drive_service, query: str = None, page_size: int = 10
         print(f"An unexpected error occurred while listing files: {e}")
         return []
 
-@tool
 def create_google_doc(drive_service, doc_name: str, parent_folder_id: str = None):
     """
     Creates a new EMPTY Google Docs document in Google Drive.
@@ -340,7 +329,7 @@ if __name__ == '__main__':
 
         print("\n--- Example: Listing top 5 files/folders ---")
         try:
-            files_list = list_files_and_folders(drive_service, page_size=5) # Corrected variable name
+            files_list = list_files_and_folders(drive_service, page_size=5)
             if files_list:
                 print(f"Found {len(files_list)} files/folders:")
                 for f_item in files_list:
