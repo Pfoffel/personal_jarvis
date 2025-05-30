@@ -3,13 +3,13 @@ from notion_client import Client
 import getpass
 import os
 from dotenv import load_dotenv
-from functools import partial
+# Removed: from functools import partial
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.tools import StructuredTool # Added import
+from langchain_core.tools import StructuredTool
 
 from modules.notion_retrieval import (
     get_env_variables, 
@@ -27,14 +27,14 @@ from memory.vector import (
 )
 from tools.basic_tools import *
 from tools.google_tools import (
-    GoogleAuth,
-    create_folder,
-    upload_file,
-    update_file_content,
-    download_binary_file,
-    export_google_workspace_doc,
-    list_files_and_folders,
-    create_google_doc
+    GoogleAuth, # Still needed
+    create_folder_tool_factory,
+    upload_file_tool_factory,
+    update_file_content_tool_factory,
+    download_binary_file_tool_factory,
+    export_google_workspace_doc_tool_factory,
+    list_files_and_folders_tool_factory,
+    create_google_doc_tool_factory
 )
 from googleapiclient.errors import HttpError
 from prompts.system_prompts import jarvis_main_prompt
@@ -71,50 +71,50 @@ except Exception as e:
 if drive_service:
     print("Google Drive service initialized successfully.")
 
-    # Create partial functions with drive_service bound
-    bound_create_folder_func = partial(create_folder, drive_service=drive_service)
-    bound_upload_file_func = partial(upload_file, drive_service=drive_service)
-    bound_update_file_content_func = partial(update_file_content, drive_service=drive_service)
-    bound_download_binary_file_func = partial(download_binary_file, drive_service=drive_service)
-    bound_export_google_workspace_doc_func = partial(export_google_workspace_doc, drive_service=drive_service)
-    bound_list_files_and_folders_func = partial(list_files_and_folders, drive_service=drive_service)
-    bound_create_google_doc_func = partial(create_google_doc, drive_service=drive_service)
+    # Get agent-facing functions from factories
+    agent_facing_create_folder = create_folder_tool_factory(drive_service)
+    agent_facing_upload_file = upload_file_tool_factory(drive_service)
+    agent_facing_update_file_content = update_file_content_tool_factory(drive_service)
+    agent_facing_download_binary_file = download_binary_file_tool_factory(drive_service)
+    agent_facing_export_google_workspace_doc = export_google_workspace_doc_tool_factory(drive_service)
+    agent_facing_list_files_and_folders = list_files_and_folders_tool_factory(drive_service)
+    agent_facing_create_google_doc = create_google_doc_tool_factory(drive_service)
 
-    # Wrap partial functions with StructuredTool
+    # Wrap agent-facing functions with StructuredTool
     tool_create_folder = StructuredTool.from_function(
-        func=bound_create_folder_func,
+        func=agent_facing_create_folder,
         name="create_google_drive_folder",
-        description=create_folder.__doc__
+        description=agent_facing_create_folder.__doc__ # Relies on docstring being copied in factory
     )
     tool_upload_file = StructuredTool.from_function(
-        func=bound_upload_file_func,
+        func=agent_facing_upload_file,
         name="upload_file_to_google_drive",
-        description=upload_file.__doc__
+        description=agent_facing_upload_file.__doc__
     )
     tool_update_file_content = StructuredTool.from_function(
-        func=bound_update_file_content_func,
+        func=agent_facing_update_file_content,
         name="update_google_drive_file_content",
-        description=update_file_content.__doc__
+        description=agent_facing_update_file_content.__doc__
     )
     tool_download_binary_file = StructuredTool.from_function(
-        func=bound_download_binary_file_func,
+        func=agent_facing_download_binary_file,
         name="download_google_drive_binary_file",
-        description=download_binary_file.__doc__
+        description=agent_facing_download_binary_file.__doc__
     )
     tool_export_google_workspace_doc = StructuredTool.from_function(
-        func=bound_export_google_workspace_doc_func,
+        func=agent_facing_export_google_workspace_doc,
         name="export_google_drive_workspace_document",
-        description=export_google_workspace_doc.__doc__
+        description=agent_facing_export_google_workspace_doc.__doc__
     )
     tool_list_files_and_folders = StructuredTool.from_function(
-        func=bound_list_files_and_folders_func,
+        func=agent_facing_list_files_and_folders,
         name="list_google_drive_files_and_folders",
-        description=list_files_and_folders.__doc__
+        description=agent_facing_list_files_and_folders.__doc__
     )
     tool_create_google_doc = StructuredTool.from_function(
-        func=bound_create_google_doc_func,
+        func=agent_facing_create_google_doc,
         name="create_empty_google_doc",
-        description=create_google_doc.__doc__
+        description=agent_facing_create_google_doc.__doc__
     )
 
     google_drive_tools_list = [
@@ -126,9 +126,7 @@ if drive_service:
         tool_list_files_and_folders,
         tool_create_google_doc,
     ]
-    print("Google Drive tools wrapped with StructuredTool and added to agent's available tools.")
-    # In a Streamlit app, you would typically store the drive_service in st.session_state
-    # after successful authentication to avoid re-authenticating on every interaction.
+    print("Google Drive tools (from factories) wrapped with StructuredTool and added to agent's available tools.")
 else:
     if not google_drive_tools_list:
         print("Google Drive service could not be initialized. Tools will not be available for this session.")

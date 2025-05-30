@@ -1,13 +1,13 @@
 import os
 import io
 import json
+from typing import Optional # Added for type hints
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from googleapiclient.errors import HttpError
-# Removed: from langchain.tools import tool
 
 # --- Configuration ---
 SCOPES = [
@@ -60,9 +60,10 @@ class GoogleAuth:
             print(f"An unexpected error occurred during service build: {e}")
             return None
 
-# --- Standalone Google Drive Tool Functions ---
+# --- Google Drive Tool Implementations and Factories ---
 
-def create_folder(drive_service, folder_name: str, parent_folder_id: str = None):
+# 1. Create Folder
+def _create_folder_impl(drive_service, folder_name: str, parent_folder_id: Optional[str] = None):
     """
     Creates a new folder in Google Drive.
 
@@ -92,7 +93,14 @@ def create_folder(drive_service, folder_name: str, parent_folder_id: str = None)
         print(f"An unexpected error occurred while creating folder: {e}")
         return None
 
-def upload_file(drive_service, file_path: str, file_name: str, mime_type: str, parent_folder_id: str = None, convert_to_google_doc: bool = False):
+def create_folder_tool_factory(drive_service):
+    def create_folder_for_agent(folder_name: str, parent_folder_id: Optional[str] = None):
+        return _create_folder_impl(drive_service, folder_name, parent_folder_id)
+    create_folder_for_agent.__doc__ = _create_folder_impl.__doc__
+    return create_folder_for_agent
+
+# 2. Upload File
+def _upload_file_impl(drive_service, file_path: str, file_name: str, mime_type: str, parent_folder_id: Optional[str] = None, convert_to_google_doc: bool = False):
     """
     Uploads a new file to Google Drive. Optionally converts it to Google Docs format.
 
@@ -131,7 +139,14 @@ def upload_file(drive_service, file_path: str, file_name: str, mime_type: str, p
         print(f"An unexpected error occurred while uploading file: {e}")
         return None
 
-def update_file_content(drive_service, file_id: str, new_file_path: str, new_mime_type: str = None, new_name: str = None, convert_to_google_doc: bool = False):
+def upload_file_tool_factory(drive_service):
+    def upload_file_for_agent(file_path: str, file_name: str, mime_type: str, parent_folder_id: Optional[str] = None, convert_to_google_doc: bool = False):
+        return _upload_file_impl(drive_service, file_path, file_name, mime_type, parent_folder_id, convert_to_google_doc)
+    upload_file_for_agent.__doc__ = _upload_file_impl.__doc__
+    return upload_file_for_agent
+
+# 3. Update File Content
+def _update_file_content_impl(drive_service, file_id: str, new_file_path: str, new_mime_type: Optional[str] = None, new_name: Optional[str] = None, convert_to_google_doc: bool = False):
     """
     Updates the content and/or metadata of an existing file in Google Drive.
     Optionally converts it to Google Docs format during update.
@@ -171,7 +186,14 @@ def update_file_content(drive_service, file_id: str, new_file_path: str, new_mim
         print(f"An unexpected error occurred while updating file: {e}")
         return None
 
-def download_binary_file(drive_service, file_id: str, local_save_path: str):
+def update_file_content_tool_factory(drive_service):
+    def update_file_content_for_agent(file_id: str, new_file_path: str, new_mime_type: Optional[str] = None, new_name: Optional[str] = None, convert_to_google_doc: bool = False):
+        return _update_file_content_impl(drive_service, file_id, new_file_path, new_mime_type, new_name, convert_to_google_doc)
+    update_file_content_for_agent.__doc__ = _update_file_content_impl.__doc__
+    return update_file_content_for_agent
+
+# 4. Download Binary File
+def _download_binary_file_impl(drive_service, file_id: str, local_save_path: str):
     """
     Downloads a non-Google Workspace file from Google Drive.
 
@@ -203,7 +225,14 @@ def download_binary_file(drive_service, file_id: str, local_save_path: str):
         print(f"An unexpected error occurred while downloading file: {e}")
         return False
 
-def export_google_workspace_doc(drive_service, file_id: str, export_mime_type: str, local_save_path: str):
+def download_binary_file_tool_factory(drive_service):
+    def download_binary_file_for_agent(file_id: str, local_save_path: str):
+        return _download_binary_file_impl(drive_service, file_id, local_save_path)
+    download_binary_file_for_agent.__doc__ = _download_binary_file_impl.__doc__
+    return download_binary_file_for_agent
+
+# 5. Export Google Workspace Document
+def _export_google_workspace_doc_impl(drive_service, file_id: str, export_mime_type: str, local_save_path: str):
     """
     Exports a Google Workspace document (e.g., Docs, Sheets) to a specified MIME type.
 
@@ -236,7 +265,14 @@ def export_google_workspace_doc(drive_service, file_id: str, export_mime_type: s
         print(f"An unexpected error occurred while exporting document: {e}")
         return False
 
-def list_files_and_folders(drive_service, query: str = None, page_size: int = 100):
+def export_google_workspace_doc_tool_factory(drive_service):
+    def export_google_workspace_doc_for_agent(file_id: str, export_mime_type: str, local_save_path: str):
+        return _export_google_workspace_doc_impl(drive_service, file_id, export_mime_type, local_save_path)
+    export_google_workspace_doc_for_agent.__doc__ = _export_google_workspace_doc_impl.__doc__
+    return export_google_workspace_doc_for_agent
+
+# 6. List Files and Folders
+def _list_files_and_folders_impl(drive_service, query: Optional[str] = None, page_size: int = 100):
     """
     Lists files and folders in Google Drive, with optional query filtering and pagination.
 
@@ -278,7 +314,14 @@ def list_files_and_folders(drive_service, query: str = None, page_size: int = 10
         print(f"An unexpected error occurred while listing files: {e}")
         return []
 
-def create_google_doc(drive_service, doc_name: str, parent_folder_id: str = None):
+def list_files_and_folders_tool_factory(drive_service):
+    def list_files_and_folders_for_agent(query: Optional[str] = None, page_size: int = 100):
+        return _list_files_and_folders_impl(drive_service, query, page_size)
+    list_files_and_folders_for_agent.__doc__ = _list_files_and_folders_impl.__doc__
+    return list_files_and_folders_for_agent
+
+# 7. Create Google Doc
+def _create_google_doc_impl(drive_service, doc_name: str, parent_folder_id: Optional[str] = None):
     """
     Creates a new EMPTY Google Docs document in Google Drive.
 
@@ -308,9 +351,15 @@ def create_google_doc(drive_service, doc_name: str, parent_folder_id: str = None
         print(f"An unexpected error occurred while creating Google Docs document: {e}")
         return None
 
+def create_google_doc_tool_factory(drive_service):
+    def create_google_doc_for_agent(doc_name: str, parent_folder_id: Optional[str] = None):
+        return _create_google_doc_impl(drive_service, doc_name, parent_folder_id)
+    create_google_doc_for_agent.__doc__ = _create_google_doc_impl.__doc__
+    return create_google_doc_for_agent
+
 
 if __name__ == '__main__':
-    print("--- Testing GoogleAuth and Standalone Google Drive Tools ---")
+    print("--- Testing GoogleAuth and Standalone Google Drive Tools (Factory Pattern) ---")
 
     if not os.path.exists('secrets'):
         os.makedirs('secrets')
@@ -329,7 +378,11 @@ if __name__ == '__main__':
 
         print("\n--- Example: Listing top 5 files/folders ---")
         try:
-            files_list = list_files_and_folders(drive_service, page_size=5)
+            # Get the agent-facing function from the factory
+            list_files_func = list_files_and_folders_tool_factory(drive_service)
+            # Call the agent-facing function
+            files_list = list_files_func(page_size=5)
+
             if files_list:
                 print(f"Found {len(files_list)} files/folders:")
                 for f_item in files_list:
@@ -340,8 +393,12 @@ if __name__ == '__main__':
                 print("Could not list files (method might have returned None or other error state).")
 
             print("\n--- Example: Creating a test folder ---")
-            test_folder_name = "Test Folder Created by Automated Script - OK to Delete"
-            folder_id = create_folder(drive_service, folder_name=test_folder_name)
+            test_folder_name = "Test Folder Created by Factory - OK to Delete"
+            # Get the agent-facing function from the factory
+            create_folder_func = create_folder_tool_factory(drive_service)
+            # Call the agent-facing function
+            folder_id = create_folder_func(folder_name=test_folder_name)
+
             if folder_id:
                 print(f"Test folder '{test_folder_name}' created successfully with ID: {folder_id}")
             else:
