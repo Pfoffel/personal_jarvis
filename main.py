@@ -23,6 +23,8 @@ from memory.vector import (
     get_q2_2025_goals
 )
 from tools.basic_tools import *
+from tools.google_tools import GoogleAuth, GoogleDriveTools
+from googleapiclient.errors import HttpError
 from prompts.system_prompts import jarvis_main_prompt
 
 load_dotenv()
@@ -40,26 +42,69 @@ llm = ChatGoogleGenerativeAI(
     
 )
 
+# --- Initialize Google Drive Tools ---
+print("Attempting to initialize Google Drive tools...")
+google_drive_tools_list = []
+drive_service = None
+try:
+    auth_instance = GoogleAuth()
+    drive_service = auth_instance.get_drive_service() # This will print messages internally
+except HttpError as e:
+    print(f"Failed to initialize Google Drive service due to HttpError: {e}")
+    print("Google Drive tools will not be available for this session.")
+except Exception as e:
+    print(f"An unexpected error occurred during Google Drive service initialization: {e}")
+    print("Google Drive tools will not be available for this session.")
+
+if drive_service:
+    print("Google Drive service initialized successfully.")
+    google_tools_instance = GoogleDriveTools(drive_service)
+    google_drive_tools_list = [
+        google_tools_instance.create_folder,
+        google_tools_instance.upload_file,
+        google_tools_instance.update_file_content,
+        google_tools_instance.download_binary_file,
+        google_tools_instance.export_google_workspace_doc,
+        google_tools_instance.list_files_and_folders,
+        google_tools_instance.create_google_doc,
+    ]
+    print("Google Drive tools added to agent's available tools.")
+    # In a Streamlit app, you would typically store the drive_service in st.session_state
+    # after successful authentication to avoid re-authenticating on every interaction.
+    # For example:
+    # if 'drive_service' not in st.session_state:
+    # st.session_state.drive_service = drive_service
+    # And then retrieve it when needed:
+    # drive_service = st.session_state.drive_service
+else:
+    if not google_drive_tools_list: # Only print if no specific error was caught above that already printed this
+        print("Google Drive service could not be initialized. Tools will not be available for this session.")
+
+
+existing_tools = [
+    get_env_variables, 
+    get_date, 
+    search_internet, 
+    get_notion_journaling_month, 
+    # get_env_variables, # Duplicate removed
+    get_notion_journaling_day, 
+    save_output,
+    list_files,
+    load_file_content,
+    open_files,
+    add_new_memory,
+    find_in_memory_user_data,
+    find_in_memory_notion_data,
+    find_in_memory,
+    get_q2_2025_goals
+]
+
+all_tools = existing_tools + google_drive_tools_list
+
 personal_agent = create_react_agent(
     model=llm,
     name="Jarvis",
-    tools=[
-        get_env_variables, 
-        get_date, 
-        search_internet, 
-        get_notion_journaling_month, 
-        get_env_variables, 
-        get_notion_journaling_day, 
-        save_output,
-        list_files,
-        load_file_content,
-        open_files,
-        add_new_memory,
-        find_in_memory_user_data,
-        find_in_memory_notion_data,
-        find_in_memory,
-        get_q2_2025_goals
-    ],
+    tools=all_tools,
     prompt=jarvis_main_prompt,
     checkpointer=checkpoint
 )

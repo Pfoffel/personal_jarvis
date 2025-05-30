@@ -5,474 +5,403 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from googleapiclient.errors import HttpError
+from langchain.tools import tool
 
 # --- Configuration ---
 # Define the scopes your application needs.
 # It's best practice to request the narrowest possible scopes.
-# For full file management, 'https://www.googleapis.com/auth/drive' is needed.
-# For app-specific files, 'https://www.googleapis.com/auth/drive.file' is often sufficient.
-# Refer to the documentation for more scopes:
-# https://developers.google.com/drive/api/guides/api-reference#rest-resource:-files
 SCOPES = [
-    'https://www.googleapis.com/auth/drive.file',  # Access to files created or opened by the app
-    'https://www.googleapis.com/auth/drive.metadata.readonly', # Read-only access to file metadata
-    # 'https://www.googleapis.com/auth/drive', # Full, permissive access (use with caution)
+    'https://www.googleapis.com/auth/drive.file',
+    'https://www.googleapis.com/auth/drive.metadata.readonly',
 ]
-
-# The path to your client secrets file downloaded from Google Cloud Console.
-# IMPORTANT: In a production web application, you should load these credentials
-# from environment variables or a secure secrets management system, NOT directly
-# from a file committed to your repository.
 CLIENT_SECRETS_FILE = 'secrets/credentials.json'
 
-# The redirect URI configured in your Google Cloud project for "Web application" client ID.
-# This must match exactly what you entered in the Google Cloud Console.
-# REDIRECT_URI = 'http://localhost:5000/oauth2callback' # Example for a local Flask app
 
-# --- Authentication and Authorization ---
+class GoogleAuth:
+    def __init__(self, client_secrets_file=CLIENT_SECRETS_FILE, 
+                 scopes=SCOPES,
+                 token_file='secrets/token.json'):
+        self.client_secrets_file = client_secrets_file
+        self.scopes = scopes
+        self.token_file = token_file
 
-def get_google_drive_service():
-    """
-    Authenticates the user and returns a Google Drive API service object.
-    """
-    creds = None
-    
-    if os.path.exists('secrets/token.json'):
-        creds = Credentials.from_authorized_user_file('secrets/token.json', SCOPES)
-
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            print("Access token expired, attempting to refresh...")
-            try:
-                creds.refresh(Request())
-            except Exception as e:
-                print(f"Error refreshing token: {e}. Re-authenticating...")
-                creds = None
+    def get_drive_service(self):
+        """
+        Authenticates the user and returns a Google Drive API service object.
+        """
+        creds = None
         
-        if not creds:
-            print("No valid credentials found. Initiating new authorization flow...")
-            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+        if os.path.exists(self.token_file):
+            creds = Credentials.from_authorized_user_file(self.token_file, self.scopes)
+
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                print("Access token expired, attempting to refresh...")
+                try:
+                    creds.refresh(Request())
+                except Exception as e:
+                    print(f"Error refreshing token: {e}. Re-authenticating...")
+                    creds = None
             
-            # --- IMPORTANT CHANGE HERE ---
-            # Use run_local_server() to handle the redirect automatically.
-            # It will open a browser, handle the redirect, and fetch the token.
-            # You usually don't need to manually enter the URL.
-            # https://personaljarvis.streamlit.app
-            try:
-                creds = flow.run_local_server(port=0) # port=0 tells it to find an available port
-            except Exception as e:
-                print(f"Error running local server for authentication: {e}")
-                print("Make sure you have a browser installed and that the redirect URI for your OAuth client in Google Cloud Console is set to 'http://localhost' (or a specific port if desired, but 0 is easiest).")
-                return None # Exit if authentication fails
-            # --- END IMPORTANT CHANGE ---
+            if not creds:
+                print("No valid credentials found. Initiating new authorization flow...")
+                flow = InstalledAppFlow.from_client_secrets_file(self.client_secrets_file, self.scopes)
+                
+                # For production HTTPS deployment, you would set the redirect_uri like this:
+                # flow.redirect_uri = 'YOUR_HTTPS_REDIRECT_URI_HERE'
+                # print("Development mode: Using http://localhost for OAuth redirect.")
+                # print("Production reminder: Ensure 'YOUR_HTTPS_REDIRECT_URI_HERE' is updated and your Google Cloud OAuth client is configured for HTTPS.")
+                try:
+                    creds = flow.run_local_server(port=0) 
+                except Exception as e:
+                    print(f"Error running local server for authentication: {e}")
+                    print("Make sure you have a browser installed and that the redirect URI for your OAuth client in Google Cloud Console is set to 'http://localhost' (or a specific port if desired, but 0 is easiest).")
+                    return None
 
-        with open('secrets/token.json', 'w') as token:
-            token.write(creds.to_json())
-    
-    try:
-        service = build('drive', 'v3', credentials=creds)
-        print("Google Drive service initialized successfully.")
-        return service
-    except HttpError as error:
-        print(f"An HTTP error occurred during service build: {error}")
-        print(f"Error details: {error.content.decode('utf-8')}")
-        return None
-    except Exception as e:
-        print(f"An unexpected error occurred during service build: {e}")
-        return None
-
-# --- Core Google Drive File Management Operations ---
-
-def create_folder(service, folder_name, parent_folder_id=None):
-    """
-    Creates a new folder in Google Drive.
-
-    Args:
-        service: Google Drive API service object.
-        folder_name: The name of the new folder.
-        parent_folder_id: (Optional) The ID of the parent folder. If None, creates in My Drive root.
-
-    Returns:
-        The ID of the created folder, or None if an error occurred.
-    """
-    file_metadata = {
-        'name': folder_name,
-        'mimeType': 'application/vnd.google-apps.folder'
-    }
-    if parent_folder_id:
-        file_metadata['parents'] = [parent_folder_id]
-
-    try:
-        folder = service.files().create(body=file_metadata, fields='id, name').execute()
-        print(f"Folder '{folder.get('name')}' created with ID: {folder.get('id')}")
-        return folder.get('id')
-    except HttpError as error:
-        print(f"An HTTP error occurred while creating folder: {error}")
-        print(f"Error details: {error.content.decode('utf-8')}")
-        return None
-    except Exception as e:
-        print(f"An unexpected error occurred while creating folder: {e}")
-        return None
-
-def upload_file(service, file_path, file_name, mime_type, parent_folder_id=None, convert_to_google_doc=False):
-    """
-    Uploads a new file to Google Drive. Optionally converts it to Google Docs format.
-
-    Args:
-        service: Google Drive API service object.
-        file_path: The local path to the file to upload.
-        file_name: The desired name of the file in Google Drive.
-        mime_type: The MIME type of the file (e.g., 'text/plain', 'image/jpeg').
-        parent_folder_id: (Optional) The ID of the parent folder. If None, uploads to My Drive root.
-        convert_to_google_doc: If True, attempts to convert the uploaded file to a Google Docs document.
-                               Requires appropriate source file type (e.g., text/plain, application/msword).
-
-    Returns:
-        The ID of the uploaded file, or None if an error occurred.
-    """
-    file_metadata = {'name': file_name}
-    if parent_folder_id:
-        file_metadata['parents'] = [parent_folder_id]
-
-    # --- THE CRITICAL CHANGE FOR CONVERSION IS HERE ---
-    if convert_to_google_doc:
-        file_metadata['mimeType'] = 'application/vnd.google-apps.document'
-    # --- END CRITICAL CHANGE ---
-
-    media = MediaFileUpload(file_path, mimetype=mime_type, resumable=True)
-
-    try:
-        file = service.files().create(
-            body=file_metadata, # This body now includes the target MIME type if converting
-            media_body=media,
-            fields='id, name, mimeType',
-        ).execute()
+            with open(self.token_file, 'w') as token:
+                token.write(creds.to_json())
         
-        conversion_status = "and converted to Google Doc" if file.get('mimeType') == 'application/vnd.google-apps.document' else ""
-        print(f"File '{file.get('name')}' uploaded {conversion_status} with ID: {file.get('id')} (MIME: {file.get('mimeType')})")
-        return file.get('id')
-    except HttpError as error:
-        print(f"An HTTP error occurred while uploading file: {error}")
-        print(f"Error details: {error.content.decode('utf-8')}")
-        return None
-    except Exception as e:
-        print(f"An unexpected error occurred while uploading file: {e}")
-        return None
+        try:
+            service = build('drive', 'v3', credentials=creds)
+            print("Google Drive service initialized successfully.")
+            return service
+        except HttpError as error:
+            print(f"An HTTP error occurred during service build: {error}")
+            print(f"Error details: {error.content.decode('utf-8')}")
+            return None
+        except Exception as e:
+            print(f"An unexpected error occurred during service build: {e}")
+            return None
 
-def update_file_content(service, file_id, new_file_path, new_mime_type=None, new_name=None, convert_to_google_doc=False):
-    """
-    Updates the content and/or metadata of an existing file in Google Drive.
-    Optionally converts it to Google Docs format during update.
 
-    Args:
-        service: Google Drive API service object.
-        file_id: The ID of the file to update.
-        new_file_path: The local path to the new content for the file.
-        new_mime_type: (Optional) The new MIME type of the file.
-                       This should be the source MIME type of the content being uploaded.
-        new_name: (Optional) The new name for the file.
-        convert_to_google_doc: If True, attempts to convert the updated file to a Google Docs document.
-                               Requires appropriate source file type. This implies the target file
-                               will become a Google Doc if it wasn't already.
+class GoogleDriveTools:
+    def __init__(self, drive_service):
+        self.service = drive_service
 
-    Returns:
-        The ID of the updated file, or None if an error occurred.
-    """
-    file_metadata = {}
-    if new_name:
-        file_metadata['name'] = new_name
-    
-    # --- THE CRITICAL CHANGE FOR CONVERSION IS HERE (for updates) ---
-    # When converting an existing file type to a Google Doc during an update,
-    # you explicitly set the target MIME type in the body.
-    if convert_to_google_doc:
-        file_metadata['mimeType'] = 'application/vnd.google-apps.document'
-    # --- END CRITICAL CHANGE ---
+    @tool
+    def create_folder(self, folder_name: str, parent_folder_id: str = None):
+        """
+        Creates a new folder in Google Drive.
 
-    media = MediaFileUpload(new_file_path, mimetype=new_mime_type, resumable=True)
-    
-    try:
-        updated_file = service.files().update(
-            fileId=file_id,
-            body=file_metadata, # This body now includes the target MIME type if converting
-            media_body=media,
-            fields='id, name, mimeType'
-        ).execute()
-        
-        conversion_status = "and converted to Google Doc" if updated_file.get('mimeType') == 'application/vnd.google-apps.document' else ""
-        print(f"File '{updated_file.get('name')}' (ID: {updated_file.get('id')}) updated {conversion_status} successfully. (MIME: {updated_file.get('mimeType')})")
-        return updated_file.get('id')
-    except HttpError as error:
-        print(f"An HTTP error occurred while updating file: {error}")
-        print(f"Error details: {error.content.decode('utf-8')}")
-        return None
-    except Exception as e:
-        print(f"An unexpected error occurred while updating file: {e}")
-        return None
+        Args:
+            folder_name: The name of the new folder.
+            parent_folder_id: (Optional) The ID of the parent folder. If None, creates in My Drive root.
 
-def download_binary_file(service, file_id, local_save_path):
-    """
-    Downloads a non-Google Workspace file from Google Drive.
+        Returns:
+            The ID of the created folder, or None if an error occurred.
+        """
+        file_metadata = {
+            'name': folder_name,
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+        if parent_folder_id:
+            file_metadata['parents'] = [parent_folder_id]
 
-    Args:
-        service: Google Drive API service object.
-        file_id: The ID of the file to download.
-        local_save_path: The local path where the file should be saved.
+        try:
+            folder = self.service.files().create(body=file_metadata, fields='id, name').execute()
+            print(f"Folder '{folder.get('name')}' created with ID: {folder.get('id')}")
+            return folder.get('id')
+        except HttpError as error:
+            print(f"An HTTP error occurred while creating folder: {error}")
+            print(f"Error details: {error.content.decode('utf-8')}")
+            return None
+        except Exception as e:
+            print(f"An unexpected error occurred while creating folder: {e}")
+            return None
 
-    Returns:
-        True if the file was downloaded successfully, False otherwise.
-    """
-    try:
-        request = service.files().get_media(fileId=file_id)
-        fh = io.BytesIO()
-        downloader = MediaIoBaseDownload(fh, request)
-        done = False
-        while done is False:
-            status, done = downloader.next_chunk()
-            print(f"Download progress: {int(status.progress() * 100)}%")
-        
-        with open(local_save_path, 'wb') as f:
-            f.write(fh.getvalue())
-        print(f"File downloaded successfully to: {local_save_path}")
-        return True
-    except HttpError as error:
-        print(f"An HTTP error occurred while downloading file: {error}")
-        print(f"Error details: {error.content.decode('utf-8')}")
-        return False
-    except Exception as e:
-        print(f"An unexpected error occurred while downloading file: {e}")
-        return False
+    @tool
+    def upload_file(self, file_path: str, file_name: str, mime_type: str, parent_folder_id: str = None, convert_to_google_doc: bool = False):
+        """
+        Uploads a new file to Google Drive. Optionally converts it to Google Docs format.
 
-def export_google_workspace_doc(service, file_id, export_mime_type, local_save_path):
-    """
-    Exports a Google Workspace document (e.g., Docs, Sheets) to a specified MIME type.
+        Args:
+            file_path: The local path to the file to upload.
+            file_name: The desired name of the file in Google Drive.
+            mime_type: The MIME type of the file (e.g., 'text/plain', 'image/jpeg').
+            parent_folder_id: (Optional) The ID of the parent folder. If None, uploads to My Drive root.
+            convert_to_google_doc: If True, attempts to convert the uploaded file to a Google Docs document.
+                                   Requires appropriate source file type (e.g., text/plain, application/msword).
 
-    Args:
-        service: Google Drive API service object.
-        file_id: The ID of the Google Workspace document to export.
-        export_mime_type: The MIME type to export to (e.g., 'application/pdf',
-                          'application/vnd.openxmlformats-officedocument.wordprocessingml.document' for DOCX).
-        local_save_path: The local path where the exported file should be saved.
+        Returns:
+            The ID of the uploaded file, or None if an error occurred.
+        """
+        file_metadata = {'name': file_name}
+        if parent_folder_id:
+            file_metadata['parents'] = [parent_folder_id]
 
-    Returns:
-        True if the file was exported successfully, False otherwise.
-    """
-    try:
-        request = service.files().export(fileId=file_id, mimeType=export_mime_type)
-        fh = io.BytesIO()
-        downloader = MediaIoBaseDownload(fh, request)
-        done = False
-        while done is False:
-            status, done = downloader.next_chunk()
-            print(f"Export progress: {int(status.progress() * 100)}%")
-        
-        with open(local_save_path, 'wb') as f:
-            f.write(fh.getvalue())
-        print(f"Google Workspace document exported successfully to: {local_save_path}")
-        return True
-    except HttpError as error:
-        print(f"An HTTP error occurred while exporting document: {error}")
-        print(f"Error details: {error.content.decode('utf-8')}")
-        return False
-    except Exception as e:
-        print(f"An unexpected error occurred while exporting document: {e}")
-        return False
+        if convert_to_google_doc:
+            file_metadata['mimeType'] = 'application/vnd.google-apps.document'
 
-def list_files_and_folders(service, query=None, page_size=100):
-    """
-    Lists files and folders in Google Drive, with optional query filtering and pagination.
+        media = MediaFileUpload(file_path, mimetype=mime_type, resumable=True)
 
-    Args:
-        service: Google Drive API service object.
-        query: (Optional) A query string to filter results (e.g., "mimeType='image/jpeg'").
-               Refer to https://developers.google.com/drive/api/guides/search-files for query syntax.
-        page_size: The number of items to return per page.
-
-    Returns:
-        A list of dictionaries, each representing a file or folder, or an empty list if an error occurred.
-    """
-    results = []
-    page_token = None
-    
-    try:
-        while True:
-            # Define fields to retrieve for each file.
-            # 'nextPageToken' is essential for pagination.
-            # 'files(id, name, mimeType, parents, modifiedTime)' are common useful fields.
-            params = {
-                'pageSize': page_size,
-                'fields': "nextPageToken, files(id, name, mimeType, parents, modifiedTime)",
-                'spaces': 'drive', # Restrict to Drive files (not photos, etc.)
-            }
-            if query:
-                params['q'] = query
-            if page_token:
-                params['pageToken'] = page_token
-
-            response = service.files().list(**params).execute()
-            items = response.get('files', [])
-            results.extend(items)
-            page_token = response.get('nextPageToken', None)
+        try:
+            file = self.service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id, name, mimeType',
+            ).execute()
             
-            if not page_token:
-                break
+            conversion_status = "and converted to Google Doc" if file.get('mimeType') == 'application/vnd.google-apps.document' else ""
+            print(f"File '{file.get('name')}' uploaded {conversion_status} with ID: {file.get('id')} (MIME: {file.get('mimeType')})")
+            return file.get('id')
+        except HttpError as error:
+            print(f"An HTTP error occurred while uploading file: {error}")
+            print(f"Error details: {error.content.decode('utf-8')}")
+            return None
+        except Exception as e:
+            print(f"An unexpected error occurred while uploading file: {e}")
+            return None
+
+    @tool
+    def update_file_content(self, file_id: str, new_file_path: str, new_mime_type: str = None, new_name: str = None, convert_to_google_doc: bool = False):
+        """
+        Updates the content and/or metadata of an existing file in Google Drive.
+        Optionally converts it to Google Docs format during update.
+
+        Args:
+            file_id: The ID of the file to update.
+            new_file_path: The local path to the new content for the file.
+            new_mime_type: (Optional) The new MIME type of the file.
+                           This should be the source MIME type of the content being uploaded.
+            new_name: (Optional) The new name for the file.
+            convert_to_google_doc: If True, attempts to convert the updated file to a Google Docs document.
+                                   Requires appropriate source file type.
+
+        Returns:
+            The ID of the updated file, or None if an error occurred.
+        """
+        file_metadata = {}
+        if new_name:
+            file_metadata['name'] = new_name
         
-        if not results:
-            print("No files or folders found matching the criteria.")
-        else:
-            print(f"Found {len(results)} files/folders:")
-            for item in results:
-                print(f"  Name: {item.get('name')}, ID: {item.get('id')}, Type: {item.get('mimeType')}")
-        return results
-    except HttpError as error:
-        print(f"An HTTP error occurred while listing files: {error}")
-        print(f"Error details: {error.content.decode('utf-8')}")
-        return []
-    except Exception as e:
-        print(f"An unexpected error occurred while listing files: {e}")
-        return []
+        if convert_to_google_doc:
+            file_metadata['mimeType'] = 'application/vnd.google-apps.document'
 
-def create_google_doc(service, doc_name, parent_folder_id=None):
-    """
-    Creates a new EMPTY Google Docs document in Google Drive.
-    To add content, use upload_file with convert_to_google_doc=True
-    or update_file_content with convert_to_google_doc=True.
+        media = MediaFileUpload(new_file_path, mimetype=new_mime_type, resumable=True)
+        
+        try:
+            updated_file = self.service.files().update(
+                fileId=file_id,
+                body=file_metadata,
+                media_body=media,
+                fields='id, name, mimeType'
+            ).execute()
+            
+            conversion_status = "and converted to Google Doc" if updated_file.get('mimeType') == 'application/vnd.google-apps.document' else ""
+            print(f"File '{updated_file.get('name')}' (ID: {updated_file.get('id')}) updated {conversion_status} successfully. (MIME: {updated_file.get('mimeType')})")
+            return updated_file.get('id')
+        except HttpError as error:
+            print(f"An HTTP error occurred while updating file: {error}")
+            print(f"Error details: {error.content.decode('utf-8')}")
+            return None
+        except Exception as e:
+            print(f"An unexpected error occurred while updating file: {e}")
+            return None
 
-    Args:
-        service: Google Drive API service object.
-        doc_name: The desired name of the Google Docs document.
-        parent_folder_id: (Optional) The ID of the parent folder. If None, creates in My Drive root.
+    @tool
+    def download_binary_file(self, file_id: str, local_save_path: str):
+        """
+        Downloads a non-Google Workspace file from Google Drive.
 
-    Returns:
-        The ID of the created Google Docs document, or None if an error occurred.
-    """
-    file_metadata = {
-        'name': doc_name,
-        'mimeType': 'application/vnd.google-apps.document'  # MIME type for Google Docs
-    }
-    if parent_folder_id:
-        file_metadata['parents'] = [parent_folder_id]
+        Args:
+            file_id: The ID of the file to download.
+            local_save_path: The local path where the file should be saved.
 
-    try:
-        doc = service.files().create(body=file_metadata, fields='id, name, mimeType').execute()
-        print(f"Google Docs document '{doc.get('name')}' created with ID: {doc.get('id')} (MIME: {doc.get('mimeType')})")
-        return doc.get('id')
-    except HttpError as error:
-        print(f"An HTTP error occurred while creating Google Docs document: {error}")
-        print(f"Error details: {error.content.decode('utf-8')}")
-        return None
-    except Exception as e:
-        print(f"An unexpected error occurred while creating Google Docs document: {e}")
-        return None
+        Returns:
+            True if the file was downloaded successfully, False otherwise.
+        """
+        try:
+            request = self.service.files().get_media(fileId=file_id)
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while done is False:
+                status, done = downloader.next_chunk()
+                print(f"Download progress: {int(status.progress() * 100)}%")
+            
+            with open(local_save_path, 'wb') as f:
+                f.write(fh.getvalue())
+            print(f"File downloaded successfully to: {local_save_path}")
+            return True
+        except HttpError as error:
+            print(f"An HTTP error occurred while downloading file: {error}")
+            print(f"Error details: {error.content.decode('utf-8')}")
+            return False
+        except Exception as e:
+            print(f"An unexpected error occurred while downloading file: {e}")
+            return False
 
-# --- Example Usage ---
+    @tool
+    def export_google_workspace_doc(self, file_id: str, export_mime_type: str, local_save_path: str):
+        """
+        Exports a Google Workspace document (e.g., Docs, Sheets) to a specified MIME type.
+
+        Args:
+            file_id: The ID of the Google Workspace document to export.
+            export_mime_type: The MIME type to export to (e.g., 'application/pdf',
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document' for DOCX).
+            local_save_path: The local path where the exported file should be saved.
+
+        Returns:
+            True if the file was exported successfully, False otherwise.
+        """
+        try:
+            request = self.service.files().export(fileId=file_id, mimeType=export_mime_type)
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while done is False:
+                status, done = downloader.next_chunk()
+                print(f"Export progress: {int(status.progress() * 100)}%")
+            
+            with open(local_save_path, 'wb') as f:
+                f.write(fh.getvalue())
+            print(f"Google Workspace document exported successfully to: {local_save_path}")
+            return True
+        except HttpError as error:
+            print(f"An HTTP error occurred while exporting document: {error}")
+            print(f"Error details: {error.content.decode('utf-8')}")
+            return False
+        except Exception as e:
+            print(f"An unexpected error occurred while exporting document: {e}")
+            return False
+
+    @tool
+    def list_files_and_folders(self, query: str = None, page_size: int = 100):
+        """
+        Lists files and folders in Google Drive, with optional query filtering and pagination.
+
+        Args:
+            query: (Optional) A query string to filter results (e.g., "mimeType='image/jpeg'").
+                   Refer to https://developers.google.com/drive/api/guides/search-files for query syntax.
+            page_size: The number of items to return per page.
+
+        Returns:
+            A list of dictionaries, each representing a file or folder, or an empty list if an error occurred.
+        """
+        results = []
+        page_token = None
+        
+        try:
+            while True:
+                params = {
+                    'pageSize': page_size,
+                    'fields': "nextPageToken, files(id, name, mimeType, parents, modifiedTime)",
+                    'spaces': 'drive',
+                }
+                if query:
+                    params['q'] = query
+                if page_token:
+                    params['pageToken'] = page_token
+
+                response = self.service.files().list(**params).execute()
+                items = response.get('files', [])
+                results.extend(items)
+                page_token = response.get('nextPageToken', None)
+                
+                if not page_token:
+                    break
+            
+            if not results:
+                print("No files or folders found matching the criteria.")
+            # else: # Removed to avoid excessive printing during tool use, but kept for __main__
+            #     print(f"Found {len(results)} files/folders:")
+            #     for item in results:
+            #         print(f"  Name: {item.get('name')}, ID: {item.get('id')}, Type: {item.get('mimeType')}")
+            return results
+        except HttpError as error:
+            print(f"An HTTP error occurred while listing files: {error}")
+            print(f"Error details: {error.content.decode('utf-8')}")
+            return []
+        except Exception as e:
+            print(f"An unexpected error occurred while listing files: {e}")
+            return []
+
+    @tool
+    def create_google_doc(self, doc_name: str, parent_folder_id: str = None):
+        """
+        Creates a new EMPTY Google Docs document in Google Drive.
+        To add content, use upload_file with convert_to_google_doc=True
+        or update_file_content with convert_to_google_doc=True.
+
+        Args:
+            doc_name: The desired name of the Google Docs document.
+            parent_folder_id: (Optional) The ID of the parent folder. If None, creates in My Drive root.
+
+        Returns:
+            The ID of the created Google Docs document, or None if an error occurred.
+        """
+        file_metadata = {
+            'name': doc_name,
+            'mimeType': 'application/vnd.google-apps.document'
+        }
+        if parent_folder_id:
+            file_metadata['parents'] = [parent_folder_id]
+
+        try:
+            doc = self.service.files().create(body=file_metadata, fields='id, name, mimeType').execute()
+            print(f"Google Docs document '{doc.get('name')}' created with ID: {doc.get('id')} (MIME: {doc.get('mimeType')})")
+            return doc.get('id')
+        except HttpError as error:
+            print(f"An HTTP error occurred while creating Google Docs document: {error}")
+            print(f"Error details: {error.content.decode('utf-8')}")
+            return None
+        except Exception as e:
+            print(f"An unexpected error occurred while creating Google Docs document: {e}")
+            return None
+
 if __name__ == '__main__':
-    # 1. Get the Google Drive service object
-    drive_service = get_google_drive_service()
+    print("--- Testing GoogleAuth and GoogleDriveTools ---")
+    
+    # Create secrets directory if it doesn't exist, and a dummy credentials file if not present
+    # This is to allow the script to run without manual setup for basic testing,
+    # though actual authentication will fail without valid credentials.
+    if not os.path.exists('secrets'):
+        os.makedirs('secrets')
+    if not os.path.exists(CLIENT_SECRETS_FILE):
+        print(f"Warning: Client secrets file '{CLIENT_SECRETS_FILE}' not found.")
+        print("Please ensure it is present and correctly configured for actual Google Drive operations.")
+        # Creating a dummy file so InstalledAppFlow doesn't crash immediately if file is missing
+        # The authentication will still fail, but it allows testing the structure.
+        with open(CLIENT_SECRETS_FILE, 'w') as f:
+            json.dump({"installed": {"client_id": "YOUR_CLIENT_ID", "project_id": "YOUR_PROJECT_ID", "auth_uri": "https://accounts.google.com/o/oauth2/auth", "token_uri": "https://oauth2.googleapis.com/token", "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs", "client_secret": "YOUR_CLIENT_SECRET", "redirect_uris": ["http://localhost"]}}, f)
+        print(f"Created a dummy '{CLIENT_SECRETS_FILE}'. Replace with your actual credentials.")
+
+    auth = GoogleAuth() # Uses default client_secrets_file and scopes
+    drive_service = auth.get_drive_service()
 
     if drive_service:
-        print("\n--- Performing example operations ---")
+        print("Successfully obtained Google Drive service.")
+        tools_instance = GoogleDriveTools(drive_service)
 
-        # Create dummy files for testing uploads/updates
-        # Content for a new document
-        doc_initial_content = "This is the initial content for the Google Doc.\n\n" \
-                              "It demonstrates how to create a Google Doc from a plain text file."
-        with open("doc_initial.txt", "w") as f:
-            f.write(doc_initial_content)
-        
-        # Content for updating an existing document
-        doc_updated_content = "This content has been UPDATED for the Google Doc.\n\n" \
-                              "This shows that you can revise Google Docs by uploading new content."
-        with open("doc_updated.txt", "w") as f:
-            f.write(doc_updated_content)
+        print("\n--- Example: Listing top 5 files/folders ---")
+        try:
+            files = tools_instance.list_files_and_folders(page_size=5)
+            if files: # files is a list of dicts or an empty list
+                print(f"Found {len(files)} files/folders:")
+                for f_item in files: # Renamed to f_item to avoid conflict with outer f from file write
+                    print(f"  - {f_item.get('name')} ({f_item.get('mimeType')}) (ID: {f_item.get('id')})")
+            elif files == []: 
+                print("No files found or an empty list was returned by list_files_and_folders.")
+            else: # Should not happen if list_files_and_folders returns [] on error as implemented
+                print("Could not list files (method might have returned None or other error state).")
 
-        # Content for a regular text file upload
-        regular_text_content = "This is a regular text file, not a Google Doc."
-        with open("regular_text_file.txt", "w") as f:
-            f.write(regular_text_content)
+            print("\n--- Example: Creating a test folder ---")
+            test_folder_name = "Test Folder Created by Automated Script - OK to Delete"
+            folder_id = tools_instance.create_folder(folder_name=test_folder_name)
+            if folder_id:
+                print(f"Test folder '{test_folder_name}' created successfully with ID: {folder_id}")
+            else:
+                print(f"Failed to create test folder '{test_folder_name}'. This might be expected if authentication failed or a real 'credentials.json' is not present.")
 
-
-        # Example 1: Create a folder
-        # my_app_folder_id = create_folder(drive_service, "MyWebAppDocs")   
-        my_app_folder_id = "1bdoTuKf91iuOjGWUC-36wuM1Dww0sdxp"
-        
-        if my_app_folder_id:
-            # --- NEW EXAMPLE: Upload a plain text file and convert it to a Google Doc ---
-            print("\n--- Creating Google Doc from local text file ---")
-            converted_doc_id = upload_file(
-                drive_service,
-                r"outputs\writing\manuals\The_Journey_Newsletter_Manual.md",
-                "Converted Google Doc from Text",
-                "text/markdown", # Source MIME type
-                parent_folder_id=my_app_folder_id,
-                convert_to_google_doc=True
-            )
-
-            if converted_doc_id:
-                print(f"Created Google Doc from text with ID: {converted_doc_id}")
-
-                # --- NEW EXAMPLE: Update the content of the CONVERTED Google Doc ---
-                # print("\n--- Updating content of the converted Google Doc ---")
-                # updated_converted_doc_id = update_file_content(
-                #     drive_service,
-                #     converted_doc_id,
-                #     "doc_updated.txt",
-                #     new_mime_type="text/plain", # Source MIME type of the content being uploaded for update
-                #     new_name="Updated Converted Google Doc",
-                #     # No need for convert_to_google_doc=True here if it's already a Google Doc
-                # )
-                # if updated_converted_doc_id:
-                #     print(f"Updated Google Doc with ID: {updated_converted_doc_id}")
-            
-            # --- Original Example: Upload a regular file (not converted) ---
-            # print("\n--- Uploading a regular text file ---")
-            # uploaded_file_id = upload_file(
-            #     drive_service,
-            #     "regular_text_file.txt",
-            #     "MyRegularWebAppDoc.txt",
-            #     "text/plain",
-            #     parent_folder_id=my_app_folder_id
-            # )
-
-            # if uploaded_file_id:
-            #     print(f"Uploaded regular text file with ID: {uploaded_file_id}")
-            
-            # --- Original Example: List files within the created folder ---
-            print(f"\nListing files in folder '{my_app_folder_id}':")
-            list_files_and_folders(drive_service, query=f"'{my_app_folder_id}' in parents and trashed = false")
-
-            # --- Original Example: Create an empty Google Docs document (still valid for empty docs) ---
-            # print("\n--- Creating an empty Google Docs document ---")
-            # empty_doc_id = create_google_doc(drive_service, "My Empty Google Doc", parent_folder_id=my_app_folder_id)
-            # if empty_doc_id:
-            #     print(f"Created empty Google Doc with ID: {empty_doc_id}")
-            
-        # Example: Export a hypothetical Google Docs file (replace with a real ID if you have one)
-        # For this to work, you need a Google Docs file ID that your app has access to.
-        # This can be the `converted_doc_id` from the new example above!
-        # if converted_doc_id: # Use the ID from the newly created doc
-        #     export_google_workspace_doc(
-        #         drive_service,
-        #         converted_doc_id,
-        #         "application/pdf",
-        #         "exported_converted_doc.pdf"
-        #     )
-        # else:
-        #     print("\nSkipping Google Docs export example. Create a Google Doc first.")
-
-        # Clean up dummy files
-        if os.path.exists("doc_initial.txt"):
-            os.remove("doc_initial.txt")
-        if os.path.exists("doc_updated.txt"):
-            os.remove("doc_updated.txt")
-        if os.path.exists("regular_text_file.txt"):
-            os.remove("regular_text_file.txt")
-        if os.path.exists("test_markdown_converted.html"):
-            os.remove("test_markdown_converted.html")
-        
-        print("\n--- Example operations complete ---")
+        except HttpError as e:
+            print(f"An HttpError occurred during tool execution: {e}")
+            print("This is often due to authentication issues (e.g., invalid or missing credentials.json, token problems) or insufficient permissions.")
+        except Exception as e:
+            print(f"An unexpected error occurred during tool execution: {e}")
     else:
-        print("Failed to initialize Google Drive service. Please check your setup.")
+        print("Failed to obtain Google Drive service. Please check your 'secrets/credentials.json' file and the authentication flow (e.g., browser pop-up).")
 
+    print("\n--- Testing complete ---")
