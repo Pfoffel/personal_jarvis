@@ -25,9 +25,9 @@ from memory.vector import (
     get_user_memories,
     get_q2_2025_goals
 )
-from tools.basic_tools import *
+from tools.basic_tools import * # This should import delete_local_file
 from tools.google_tools import (
-    GoogleAuth, # Still needed
+    GoogleAuth,
     create_folder_tool_factory,
     upload_file_tool_factory,
     update_file_content_tool_factory,
@@ -71,7 +71,6 @@ except Exception as e:
 if drive_service:
     print("Google Drive service initialized successfully.")
 
-    # Get agent-facing functions from factories
     agent_facing_create_folder = create_folder_tool_factory(drive_service)
     agent_facing_upload_file = upload_file_tool_factory(drive_service)
     agent_facing_update_file_content = update_file_content_tool_factory(drive_service)
@@ -80,11 +79,10 @@ if drive_service:
     agent_facing_list_files_and_folders = list_files_and_folders_tool_factory(drive_service)
     agent_facing_create_google_doc = create_google_doc_tool_factory(drive_service)
 
-    # Wrap agent-facing functions with StructuredTool
     tool_create_folder = StructuredTool.from_function(
         func=agent_facing_create_folder,
         name="create_google_drive_folder",
-        description=agent_facing_create_folder.__doc__ # Relies on docstring being copied in factory
+        description=agent_facing_create_folder.__doc__
     )
     tool_upload_file = StructuredTool.from_function(
         func=agent_facing_upload_file,
@@ -146,7 +144,8 @@ existing_tools = [
     find_in_memory_user_data,
     find_in_memory_notion_data,
     find_in_memory,
-    get_q2_2025_goals
+    get_q2_2025_goals,
+    delete_local_file # Added new tool here
 ]
 
 all_tools = existing_tools + google_drive_tools_list

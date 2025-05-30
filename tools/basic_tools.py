@@ -63,6 +63,34 @@ def open_files(path: str) -> str:
     except Exception as e:
         return f"Error Occurred when opening file: {e}"
 
+@tool
+def delete_local_file(file_path: str) -> str:
+    """Deletes a local file given its path.
+
+    Args:
+        file_path (str): The absolute or relative path to the local file to be deleted.
+                         For safety, it's recommended to use paths relative to a known directory like 'outputs'.
+
+    Returns:
+        str: A confirmation message if deletion is successful, or an error message if it fails.
+    """
+    try:
+        if not os.path.exists(file_path):
+            return f"Error: File not found at path: {file_path}"
+        if not os.path.isfile(file_path): # Check if it's a file, not a directory
+            return f"Error: Path exists but is not a file: {file_path}. This tool can only delete files."
+
+        os.remove(file_path)
+        return f"Successfully deleted file: {file_path}"
+    except FileNotFoundError: # Should be caught by os.path.exists, but as a safeguard
+        return f"Error: File not found at path: {file_path}"
+    except PermissionError:
+        return f"Error: Permission denied to delete file: {file_path}"
+    except OSError as e: # Catches issues like file in use or trying to delete a directory on some OS
+        return f"Error deleting file: {e}. (Ensure it's not a directory and is not in use)"
+    except Exception as e:
+        return f"An unexpected error occurred: {e}"
+
 def load_output_files():
     """ Returns a dictionary with file names as keys and their relative paths as values.
     Traverses all subdirectories. """
