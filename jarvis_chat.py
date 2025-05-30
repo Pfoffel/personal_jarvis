@@ -1,6 +1,6 @@
-import sys
-__import__('pysqlite3')
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# import sys
+# __import__('pysqlite3')
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 from main import system_memory, file_history, personal_agent, config
 from langchain_core.messages import HumanMessage

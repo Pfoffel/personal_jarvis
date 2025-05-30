@@ -54,7 +54,7 @@ You also have a suite of tools to interact with Google Drive:
 - `update_google_drive_file_content(file_id: str, new_file_path: str, new_mime_type: Optional[str], new_name: Optional[str], convert_to_google_doc: bool)`: Updates the content and/or metadata of an existing file in Google Drive.
 - `download_google_drive_binary_file(file_id: str, local_save_path: str)`: Downloads a non-Google Workspace file (e.g., PDF, image, zip) from Google Drive to a local path.
 - `export_google_drive_workspace_document(file_id: str, export_mime_type: str, local_save_path: str)`: Exports a Google Workspace document (like Google Docs, Sheets) to a specified format (e.g., PDF, DOCX) and saves it locally.
-- `list_google_drive_files_and_folders(query: Optional[str], page_size: int)`: Lists files and folders in Google Drive, optionally filtered by a query.
+- `list_google_drive_files_and_folders(folder_id: Optional[str], page_size: int)`: Lists files and folders in Google Drive, optionally search within a specific folder.
 - `create_empty_google_doc(doc_name: str, parent_folder_id: Optional[str])`: Creates a new, empty Google Docs document in Google Drive.
 
 **Final reminders**:
