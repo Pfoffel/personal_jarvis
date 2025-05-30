@@ -3,6 +3,7 @@ from notion_client import Client
 import getpass
 import os
 from dotenv import load_dotenv
+from functools import partial # Added import
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.memory import MemorySaver
@@ -23,7 +24,16 @@ from memory.vector import (
     get_q2_2025_goals
 )
 from tools.basic_tools import *
-from tools.google_tools import GoogleAuth, GoogleDriveTools
+from tools.google_tools import ( # Updated imports
+    GoogleAuth,
+    create_folder,
+    upload_file,
+    update_file_content,
+    download_binary_file,
+    export_google_workspace_doc,
+    list_files_and_folders,
+    create_google_doc
+)
 from googleapiclient.errors import HttpError
 from prompts.system_prompts import jarvis_main_prompt
 
@@ -58,15 +68,17 @@ except Exception as e:
 
 if drive_service:
     print("Google Drive service initialized successfully.")
-    google_tools_instance = GoogleDriveTools(drive_service)
+    # Removed: google_tools_instance = GoogleDriveTools(drive_service)
+
+    # Populate with partial objects
     google_drive_tools_list = [
-        google_tools_instance.create_folder,
-        google_tools_instance.upload_file,
-        google_tools_instance.update_file_content,
-        google_tools_instance.download_binary_file,
-        google_tools_instance.export_google_workspace_doc,
-        google_tools_instance.list_files_and_folders,
-        google_tools_instance.create_google_doc,
+        partial(create_folder, drive_service=drive_service),
+        partial(upload_file, drive_service=drive_service),
+        partial(update_file_content, drive_service=drive_service),
+        partial(download_binary_file, drive_service=drive_service),
+        partial(export_google_workspace_doc, drive_service=drive_service),
+        partial(list_files_and_folders, drive_service=drive_service),
+        partial(create_google_doc, drive_service=drive_service),
     ]
     print("Google Drive tools added to agent's available tools.")
     # In a Streamlit app, you would typically store the drive_service in st.session_state
@@ -77,17 +89,16 @@ if drive_service:
     # And then retrieve it when needed:
     # drive_service = st.session_state.drive_service
 else:
-    if not google_drive_tools_list: # Only print if no specific error was caught above that already printed this
+    if not google_drive_tools_list:
         print("Google Drive service could not be initialized. Tools will not be available for this session.")
 
 
 existing_tools = [
-    get_env_variables, 
-    get_date, 
-    search_internet, 
-    get_notion_journaling_month, 
-    # get_env_variables, # Duplicate removed
-    get_notion_journaling_day, 
+    get_env_variables,
+    get_date,
+    search_internet,
+    get_notion_journaling_month,
+    get_notion_journaling_day,
     save_output,
     list_files,
     load_file_content,
