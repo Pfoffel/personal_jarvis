@@ -272,7 +272,7 @@ def export_google_workspace_doc_tool_factory(drive_service):
     return export_google_workspace_doc_for_agent
 
 # 6. List Files and Folders
-def _list_files_and_folders_impl(drive_service, folder_id: Optional[str] = None, page_size: int = 100):
+def _list_files_and_folders_impl(drive_service, folder_id: str = None, page_size: int = 100):
     """
     Lists files and folders in Google Drive, with optional query filtering and pagination.
 
@@ -319,8 +319,8 @@ def _list_files_and_folders_impl(drive_service, folder_id: Optional[str] = None,
         return []
 
 def list_files_and_folders_tool_factory(drive_service):
-    def list_files_and_folders_for_agent(query: Optional[str] = None, page_size: int = 100):
-        return _list_files_and_folders_impl(drive_service, query, page_size)
+    def list_files_and_folders_for_agent(folder_id: Optional[str] = None, page_size: int = 100):
+        return _list_files_and_folders_impl(drive_service, folder_id, page_size)
     list_files_and_folders_for_agent.__doc__ = _list_files_and_folders_impl.__doc__
     return list_files_and_folders_for_agent
 

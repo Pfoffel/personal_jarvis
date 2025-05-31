@@ -25,7 +25,7 @@ def save_output(file_name: str, content: str, category: str, file_type: str, sub
 
     # Save content to file
     try: 
-        with open(file_path, 'w') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
     except Exception as e:
         return f"Error Occured: {e}"
