@@ -236,5 +236,12 @@
         "content": "Possibilities to access the streamlit app from phone: Streamlit Sharing (Streamlit Community Cloud), Deploy to a Cloud Platform (Heroku, AWS, Google Cloud, Azure), Port Forwarding (Advanced), Reverse Proxy (Advanced)",
         "source": "user",
         "timestamp": "2025-05-21T20:15:00.632769"
+    },
+    {
+        "id": 34,
+        "uid": "e6eabba5-df34-41d7-8610-14876cf9c88d",
+        "content": "The user's 'Jarvis Content' folder ID in Google Drive is 1jt2lpFY3Gx25QCwA87V3ZZ7MHEmqQDTG",
+        "source": "user",
+        "timestamp": "2025-06-24T20:09:19.511230"
     }
 ]
