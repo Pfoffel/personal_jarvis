@@ -47,7 +47,19 @@ def list_files():
 
 @tool
 def load_file_content(path: str) -> str:
-    """ loads the files content as a str given the path to it"""
+    """
+    Loads the content of a file as a string given its path.
+
+    Args:
+        path (str): The absolute or relative path to the file. 
+                    It is recommended to use paths relative to the 'outputs' directory.
+
+    Returns:
+        str: The content of the file as a string if successful, or an error message if reading fails.
+
+    Error Handling:
+        Returns a descriptive error message if the file cannot be read (e.g., file not found, permission denied).
+    """
     try:
         with open(path, "r") as f:
             return f.read()
