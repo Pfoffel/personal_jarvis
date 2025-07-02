@@ -13,9 +13,10 @@ from langchain_core.tools import StructuredTool
 
 from modules.notion_retrieval import (
     get_env_variables, 
-    get_date, search_internet, 
+    get_date, 
     get_notion_journaling_month, 
     get_notion_journaling_day, 
+    get_notion_ideas
 )
 from memory.vector import (
     add_new_memory,
@@ -51,7 +52,6 @@ config = {"configurable": {"thread_id": "abc123"},
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash",
     temperature=0,
-    
 )
 
 # --- Initialize Google Drive Tools ---
@@ -136,6 +136,7 @@ existing_tools = [
     search_internet,
     get_notion_journaling_month,
     get_notion_journaling_day,
+    get_notion_ideas,
     save_output,
     list_files,
     load_file_content,

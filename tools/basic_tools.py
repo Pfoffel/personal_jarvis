@@ -1,6 +1,7 @@
 import os
 from structure_schema.basic_structures import SaveFile
 from langchain.tools import tool
+from langchain_community.tools import DuckDuckGoSearchResults
 
 @tool(args_schema=SaveFile)
 def save_output(file_name: str, content: str, category: str, file_type: str, sub_folder: str = None) -> str:
@@ -114,6 +115,16 @@ def load_output_files():
             relative_path = os.path.relpath(os.path.join(root, file), search_folder)
             file_dict[file] = f"{search_folder}\\{relative_path}"
     return file_dict
+
+@tool
+def search_internet(query: str) -> list:
+    """ Get internet search results in a list containing the following:
+    - snippet
+    - title
+    - link """
+    search = DuckDuckGoSearchResults(output_format="list")
+    return search.invoke(query)
+
 
 if __name__ == "__main__":
     print(list_files())

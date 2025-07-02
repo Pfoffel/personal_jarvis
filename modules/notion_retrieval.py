@@ -3,10 +3,9 @@ from datetime import datetime
 from notion_client import Client
 from dotenv import load_dotenv
 from langchain.tools import tool
-from langchain_community.tools import DuckDuckGoSearchResults
 
 load_dotenv()
-notion = Client(auth="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")
+notion = Client(auth=os.getenv("NOTION_API_KEY"))
 
 # helpers
 
@@ -129,7 +128,7 @@ def get_page_text(page_id, ignore: list = [], format: list = []):
 @tool
 def get_env_variables() -> dict:
     """ Get all relevant envirenmental variables for API calls """
-    NOTION_KEY = "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"
+    NOTION_KEY = os.getenv("NOTION_API_KEY")
     DB_ID = "1c7cbfc5adbc80d4b29adec457d46ca3"
 
     return {
@@ -141,15 +140,6 @@ def get_env_variables() -> dict:
 def get_date():
     """ Get the current date """
     return datetime.now()
-
-@tool
-def search_internet(query: str) -> list:
-    """ Get internet search results in a list containing the following:
-    - snippet
-    - title
-    - link """
-    search = DuckDuckGoSearchResults(output_format="list")
-    return search.invoke(query)
 
 @tool
 def get_notion_journaling_month(selected_month: int, selected_year: int ) -> list:
@@ -237,6 +227,13 @@ def get_notion_journaling_day(selected_day: int, selected_month:int, selected_ye
         results.append(result)
 
     return results
+
+@tool
+def get_notion_ideas() -> list:
+    """ Get's you the full list of ideas from the Notion database """
+    page_id = "1c7cbfc5adbc80aeb5f8d842e7a752c7"
+    ideas = get_page_text(page_id=page_id)
+    return ideas
 
 # -----------------------------------------------------
 

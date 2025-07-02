@@ -32,6 +32,7 @@ You have access to the following tools and are authorized to use them autonomous
     - Tip: Use get_date first to determine the current month/year if needed.
 - get_notion_journaling_day: Retrieves journaling entries for a specific day.
     - Tip: Use get_date to get today's date if necessary.
+- get_notion_ideas: Retrieves a list of ideas from the Notion database.
 - search_internet: Searches the internet for relevant information.
 - save_output: Saves the output to a file into the specified directory for the user to have a record of the solution provided.
 - list_files: Lists all files found in the outputs folder and returns a dict where the key is the file name and the value is the path to it.

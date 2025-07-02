@@ -243,5 +243,26 @@
         "content": "The user's 'Jarvis Content' folder ID in Google Drive is 1jt2lpFY3Gx25QCwA87V3ZZ7MHEmqQDTG",
         "source": "user",
         "timestamp": "2025-06-24T20:09:19.511230"
+    },
+    {
+        "id": 35,
+        "uid": "ad06a8f5-bdb8-4777-b901-6b713e396c12",
+        "content": "Error when accessing Notion ideas page: Could not find block with ID 1c7cbfc5-adbc-80ae-b5f8-d842e7a752c7. Make sure the relevant pages and databases are shared with your integration.",
+        "source": "notion",
+        "timestamp": "2025-07-02T21:05:34.457475"
+    },
+    {
+        "id": 36,
+        "uid": "02b8b28e-5672-4336-a5f2-caa07a3de8b5",
+        "content": "Retrieved user's ideas from Notion: Lump Collaboration, Self-Hosting Server, Relationship Goals, Weekly Journal Summary Script, Monthly Newsletter, Personal AI Enhancements, Public AI System, Finance Web App, Google Drive Integration, 'The Big Thing', monday.com Class",
+        "source": "notion",
+        "timestamp": "2025-07-02T21:06:20.006638"
+    },
+    {
+        "id": 37,
+        "uid": "d4687b4c-7485-474d-8020-5842af6f4821",
+        "content": "Retrieved updated user's ideas from Notion: Lump Collaboration, Self-Hosting Server, Relationship Goals, Weekly Journal Summary Script (DONE), Monthly Newsletter (DONE), Personal AI Enhancements (DONE), Public AI System, Finance Web App, Google Drive Integration (DONE, but improvable), 'The Big Thing', monday.com Class (DONE)",
+        "source": "notion",
+        "timestamp": "2025-07-02T21:09:37.325113"
     }
 ]
